@@ -1,3 +1,8 @@
+# Project Structure: Finger Counting Classifier
+
+This project is organized into modular components to allow for independent development of different feature extraction techniques and seamless data integration.
+
+```text
 finger_counting_classifier
 ├── exp/
 │   └── notebook.py            # For temporaty testing
@@ -10,5 +15,5 @@ finger_counting_classifier
 │   ├── model_pca.py           # PCA 
 │   ├── model_pca_hog.py       # PCA + HOG 
 │   └── model_pca_lda.py       # PCA + LDA 
-├── main_code                  # main job（Traning and testing）
+├── main.py                    # main job（Traning and testing）
 └── README.md                  # README
