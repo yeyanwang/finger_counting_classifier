@@ -42,7 +42,6 @@ def load_and_preprocess_data(data_path, dataset_type='ideal'):
         for label_dir in os.listdir(data_path):
             label_path = os.path.join(data_path, label_dir)
             
-            # 确保是一个由数字命名的文件夹
             if not os.path.isdir(label_path) or not label_dir.isdigit():
                 continue
                 
@@ -59,49 +58,76 @@ def load_and_preprocess_data(data_path, dataset_type='ideal'):
                         
     return np.array(X), np.array(y)
 
+# Data Preparations for training, testing, and validation
 def balance_classes(X_train, y_train):
-    """类别平衡：通过数据增强扩充少数类"""
-    class_counts = Counter(y_train)
-    max_count = max(class_counts.values())
+    """
+    Balances the number of images across all classes (0 to 5).
+    If a class has fewer images, it generates new ones using augmentation.
+    """
+    # Find the target number (the count of the largest class)
+    max_count = max(Counter(y_train).values())
     
-    X_balanced = list(X_train)
-    y_balanced = list(y_train)
+    # Create lists
+    X_bal, y_bal = list(X_train), list(y_train)
     
-    for cls, count in class_counts.items():
-        if count < max_count:
-            indices = np.where(y_train == cls)[0]
-            num_to_add = max_count - count
+    # Go through each class (0, 1, 2, 3, 4, 5)
+    for cls in set(y_train):
+        # Get all original images that belong to this class
+        cls_images = X_train[y_train == cls]
+        
+        # Calculate how many images this class is missing
+        num_missing = max_count - len(cls_images)
+        
+        # Generate the missing amount
+        for _ in range(num_missing):
+            # Pick a random image from this specific class
+            random_img = cls_images[np.random.randint(len(cls_images))]
             
-            for _ in range(num_to_add):
-                idx = np.random.choice(indices)
-                aug_img = preprocessing.augment_image(X_train[idx])
-                X_balanced.append(aug_img)
-                y_balanced.append(cls)
-                
-    return np.array(X_balanced), np.array(y_balanced)
+            # Apply rotation/flip and add it to our dataset
+            X_bal.append(preprocessing.augment_image(random_img))
+            y_bal.append(cls)
+            
+    return np.array(X_bal), np.array(y_bal)
+
+
+def flatten_and_normalize(image_array):
+    """
+    Helper function: Apply Z-score normalization and flattens 2D images to 1D.
+    """
+    processed_images = []
+    for img in image_array:
+        # Normalize the image (Z-score)
+        norm_image = preprocessing.normalize_pixel_values(img)
+        # Flatten from 2D to a 1D
+        processed_images.append(norm_image.flatten())
+        
+    return np.array(processed_images)
+
 
 def get_data_pipeline(dataset_type='ideal'):
-    """主干流水线：下载、加载、切分、平衡、标准化"""
+    """
+    Main assembly line: Download -> Split -> Balance -> Normalize & Flatten
+    """
+    # Get data path
     path_ideal, path_stressed = download_datasets()
     data_path = path_ideal if dataset_type == 'ideal' else path_stressed
-    
+        
     print(f"Loading {dataset_type} dataset...")
     X, y = load_and_preprocess_data(data_path, dataset_type)
     
-    # 70% Train, 15% Val, 15% Test
+    # Split data (70% Train, 15% Validation, 15% Test)
     X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
     X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42, stratify=y_temp)
     
+    # Balance the training data
     print("Balancing training classes...")
     X_train, y_train = balance_classes(X_train, y_train)
     
-    print("Normalizing data (Z-score)...")
-    X_train = np.array([preprocessing.normalize_pixel_values(img).flatten() for img in X_train])
-    X_val = np.array([preprocessing.normalize_pixel_values(img).flatten() for img in X_val])
-    X_test = np.array([preprocessing.normalize_pixel_values(img).flatten() for img in X_test])
+    # Normalize and flatten all sets using helper function
+    print("Normalizing and flattening data...")
+    X_train = flatten_and_normalize(X_train)
+    X_val   = flatten_and_normalize(X_val)
+    X_test  = flatten_and_normalize(X_test)
     
-    print(f"Pipeline Complete. Train shape: {X_train.shape}, Test shape: {X_test.shape}")
+    print(f"Data Preparation Pipeline Complete. Train shape: {X_train.shape}, Test shape: {X_test.shape}")
     return X_train, X_val, X_test, y_train, y_val, y_test
-
-if __name__ == "__main__":
-    X_tr, X_v, X_te, y_tr, y_v, y_te = get_data_pipeline('stressed')
