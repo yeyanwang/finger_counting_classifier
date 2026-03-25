@@ -1,14 +1,8 @@
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from data_loader import get_data_pipeline
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import numpy as np
 
-def run_pca_experiment():
-    X_train, X_val, X_test, y_train, y_val, y_test = get_data_pipeline(dataset_type='ideal')
+def run_pca_experiment(X_train, X_test=None):
     pca = PCA(n_components=0.95) 
     
     print("Fitting PCA on training data...")
@@ -24,9 +18,22 @@ def run_pca_experiment():
     plt.ylabel('Cumulative Explained Variance')
     plt.title('PCA Explained Variance - Model 1 (Ideal)')
     plt.grid()
-    plt.show()
 
-    return X_train_pca, y_train
+
+    if X_test is not None:
+            X_test_pca = pca.transform(X_test)
+            return X_train_pca, X_test_pca, pca
+    
+    return X_train_pca, pca
 
 if __name__ == "__main__":
-    run_pca_experiment() 
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+    from src.data_loader import get_data_pipeline
+
+    X_train, X_val, X_test, y_train, y_val, y_test = get_data_pipeline(dataset_type='ideal')
+    X_train_pca, X_test_pca, pca_model = run_pca_experiment(X_train, X_test)
+    
+    plt.show()
