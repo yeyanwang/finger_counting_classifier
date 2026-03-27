@@ -41,7 +41,6 @@ def run_module_1():
 
     # --- Step 2: PCA + LDA  ---
     print("\n[Step 1.2] Running PCA + LDA Pipeline...")
-    # LDA 脚本内部已经包含了调用 train_and_evaluate_knn 的逻辑
     run_lda_experiment(dataset_type='ideal')
 
 
