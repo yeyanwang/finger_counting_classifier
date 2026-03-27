@@ -61,7 +61,21 @@ def run_module_2():
     print("STARTING MODULE 2: STRESSED CONDITIONS (ROBUSTNESS)")
 
     # Step 1: Get the noisy, complex-background data (CLAHE applied automatically)
+
     X_train, X_val, X_test, y_train, y_val, y_test = get_data_pipeline('stressed')
+
+    pca_data, labels, pca_model = run_pca_experiment(dataset_type='stressed')
+    save_pca_results(pca_data, labels, pca_model, dataset_type='stressed')
+
+    train_and_evaluate_knn(data_dir='./data/Stressed', experiment_name='Stressed_PCA', feature_suffix='pca')
+    # --- Step 2.2: Stressed PCA + LDA ---
+    print("\n[Step 2.2] Running PCA + LDA on Stressed Dataset...")
+    run_lda_experiment(dataset_type='stressed')
+    train_and_evaluate_knn(data_dir='./data/LDA_Stressed', experiment_name='Stressed_LDA', feature_suffix='pca')
+    # --- Step 2.3: Stressed HOG + PCA ---
+    print("\n[Step 2.3] Running HOG + PCA on Stressed Dataset...")
+    run_hog_experiment(dataset_type='stressed')
+    train_and_evaluate_knn(data_dir='./data/HOG_Stressed', experiment_name='Stressed_HOG', feature_suffix='pca')
 
     # TODO (Module 2): Initialize ISOMAP and Baseline models here
     # isomap_model = IsomapModel(n_neighbors=5, n_components=50)
@@ -71,7 +85,8 @@ def run_module_2():
     # stressed_accuracy = isomap_model.evaluate(X_test, y_test)
     
     # TODO (Module 2): Calculate Robustness Decay and plot Confusion Matrix
-    # evaluate_robustness_decay(ideal_accuracy, stressed_accuracy)
+    #evaluate_robustness_decay(ideal_accuracy, stressed_accuracy)
+
 
 
 def run_module_3():
