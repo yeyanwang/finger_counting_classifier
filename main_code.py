@@ -4,11 +4,16 @@ model training, and evaluation for all three modules.
 """
 
 import numpy as np
+import os
 # 1. Import our data pipeline
 from src.data_loader import get_data_pipeline
 
 # Placeholder Imports for Models 
 
+from src.model_pca import run_pca_experiment, save_results as save_pca_results
+from src.model_knn import train_and_evaluate_knn
+from src.model_pca_Lda import run_lda_experiment
+from src.model_pca_hog import run_hog_experiment
 # from src.model_pca import PCAModel
 # from src.model_pca_lda import PCALDAModel
 # from src.model_hog_pca import HOGPCAModel
@@ -25,17 +30,27 @@ def run_module_1():
     print("MODULE 1: IDEAL CONDITIONS")
     
     # Step 1: Get the clean, black-background data
-    X_train, X_val, X_test, y_train, y_val, y_test = get_data_pipeline('ideal')
+    print("🚀 STARTING MODULE 1: IDEAL CONDITIONS")
+    
+    # --- Step 1: PCA extracting the features ---
+    print("\n[Step 1.1] Running Basic PCA Pipeline...")
+    # run PCA and save the reduction results
+    pca_data, pca_labels, pca_model = run_pca_experiment(dataset_type='ideal')
+    save_pca_results(pca_data, pca_labels, pca_model, dataset_type='ideal')
+    train_and_evaluate_knn(data_dir='./data/Ideal', experiment_name='Ideal_PCA')
 
-    # TODO (Module 1): Initialize your feature extractors here
-    # pca_model = PCAModel(...)
-    # pca_lda_model = PCALDAModel(...)
-    # hog_pca_model = HOGPCAModel(...)
+    # --- Step 2: PCA + LDA  ---
+    print("\n[Step 1.2] Running PCA + LDA Pipeline...")
+    run_lda_experiment(dataset_type='ideal')
 
-    # TODO (Module 1): Train your models and apply K-NN
-    # pca_model.train(X_train, y_train)
-    # accuracy = pca_model.evaluate(X_test, y_test)
-    # print(f"PCA Accuracy: {accuracy}")
+
+    # --- Step 3: HOG + PCA ---
+    print("\n[Step 1.3] Running HOG + PCA Pipeline...")
+   
+    run_hog_experiment(dataset_type='ideal')
+
+    print("\n✅ MODULE 1 COMPLETE: All baseline models trained.")
+    print("Check './results/' for tuning plots and '../data/' for saved models.")
 
 
 def run_module_2():
@@ -46,7 +61,21 @@ def run_module_2():
     print("STARTING MODULE 2: STRESSED CONDITIONS (ROBUSTNESS)")
 
     # Step 1: Get the noisy, complex-background data (CLAHE applied automatically)
+
     X_train, X_val, X_test, y_train, y_val, y_test = get_data_pipeline('stressed')
+
+    pca_data, labels, pca_model = run_pca_experiment(dataset_type='stressed')
+    save_pca_results(pca_data, labels, pca_model, dataset_type='stressed')
+
+    train_and_evaluate_knn(data_dir='./data/Stressed', experiment_name='Stressed_PCA', feature_suffix='pca')
+    # --- Step 2.2: Stressed PCA + LDA ---
+    print("\n[Step 2.2] Running PCA + LDA on Stressed Dataset...")
+    run_lda_experiment(dataset_type='stressed')
+    train_and_evaluate_knn(data_dir='./data/LDA_Stressed', experiment_name='Stressed_LDA', feature_suffix='pca')
+    # --- Step 2.3: Stressed HOG + PCA ---
+    print("\n[Step 2.3] Running HOG + PCA on Stressed Dataset...")
+    run_hog_experiment(dataset_type='stressed')
+    train_and_evaluate_knn(data_dir='./data/HOG_Stressed', experiment_name='Stressed_HOG', feature_suffix='pca')
 
     # TODO (Module 2): Initialize ISOMAP and Baseline models here
     # isomap_model = IsomapModel(n_neighbors=5, n_components=50)
@@ -56,7 +85,8 @@ def run_module_2():
     # stressed_accuracy = isomap_model.evaluate(X_test, y_test)
     
     # TODO (Module 2): Calculate Robustness Decay and plot Confusion Matrix
-    # evaluate_robustness_decay(ideal_accuracy, stressed_accuracy)
+    #evaluate_robustness_decay(ideal_accuracy, stressed_accuracy)
+
 
 
 def run_module_3():
@@ -86,7 +116,7 @@ if __name__ == "__main__":
     print("Initializing Project Pipeline...")
     
     
-    # run_module_1()
+    run_module_1()
     
     # run_module_2()
     
