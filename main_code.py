@@ -4,11 +4,16 @@ model training, and evaluation for all three modules.
 """
 
 import numpy as np
+import os
 # 1. Import our data pipeline
 from src.data_loader import get_data_pipeline
 
 # Placeholder Imports for Models 
 
+from src.model_pca import run_pca_experiment, save_results as save_pca_results
+from src.model_knn import train_and_evaluate_knn
+from src.model_pca_Lda import run_lda_experiment
+from src.model_pca_hog import run_hog_experiment
 # from src.model_pca import PCAModel
 # from src.model_pca_lda import PCALDAModel
 # from src.model_hog_pca import HOGPCAModel
@@ -25,17 +30,28 @@ def run_module_1():
     print("MODULE 1: IDEAL CONDITIONS")
     
     # Step 1: Get the clean, black-background data
-    X_train, X_val, X_test, y_train, y_val, y_test = get_data_pipeline('ideal')
+    print("🚀 STARTING MODULE 1: IDEAL CONDITIONS")
+    
+    # --- Step 1: PCA extracting the features ---
+    print("\n[Step 1.1] Running Basic PCA Pipeline...")
+    # run PCA and save the reduction results
+    pca_data, pca_labels, pca_model = run_pca_experiment(dataset_type='ideal')
+    save_pca_results(pca_data, pca_labels, pca_model, dataset_type='ideal')
+    train_and_evaluate_knn(data_dir='./data/Ideal', experiment_name='Ideal_PCA')
 
-    # TODO (Module 1): Initialize your feature extractors here
-    # pca_model = PCAModel(...)
-    # pca_lda_model = PCALDAModel(...)
-    # hog_pca_model = HOGPCAModel(...)
+    # --- Step 2: PCA + LDA  ---
+    print("\n[Step 1.2] Running PCA + LDA Pipeline...")
+    # LDA 脚本内部已经包含了调用 train_and_evaluate_knn 的逻辑
+    run_lda_experiment(dataset_type='ideal')
 
-    # TODO (Module 1): Train your models and apply K-NN
-    # pca_model.train(X_train, y_train)
-    # accuracy = pca_model.evaluate(X_test, y_test)
-    # print(f"PCA Accuracy: {accuracy}")
+
+    # --- Step 3: HOG + PCA ---
+    print("\n[Step 1.3] Running HOG + PCA Pipeline...")
+   
+    run_hog_experiment(dataset_type='ideal')
+
+    print("\n✅ MODULE 1 COMPLETE: All baseline models trained.")
+    print("Check './results/' for tuning plots and '../data/' for saved models.")
 
 
 def run_module_2():
@@ -86,7 +102,7 @@ if __name__ == "__main__":
     print("Initializing Project Pipeline...")
     
     
-    # run_module_1()
+    run_module_1()
     
     # run_module_2()
     

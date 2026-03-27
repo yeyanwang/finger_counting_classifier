@@ -4,7 +4,7 @@ import numpy as np
 import kagglehub
 from sklearn.model_selection import train_test_split
 from collections import Counter
-import preprocessing
+from src import preprocessing
 
 def download_datasets():
     """Download datasets from kaggle"""
@@ -38,23 +38,24 @@ def load_and_preprocess_data(data_path, dataset_type='ideal'):
                         y.append(label)
                         
     elif dataset_type == 'stressed':
-        # Dataset 2: folders 0, 1, 2...
-        for label_dir in os.listdir(data_path):
-            label_path = os.path.join(data_path, label_dir)
+        for root, dirs, files in os.walk(data_path):
+            folder_name = os.path.basename(root)
             
-            if not os.path.isdir(label_path) or not label_dir.isdigit():
-                continue
+            # when the folder name is a number (0, 1, 2, 3, 4, 5) is it regarded as a tag folder.
+            if folder_name.isdigit():
+                label = int(folder_name)
                 
-            label = int(label_dir)
-            
-            for img_name in os.listdir(label_path):
-                if img_name.lower().endswith('.jpeg'):
-                    img = cv2.imread(os.path.join(label_path, img_name), cv2.IMREAD_GRAYSCALE)
-                    if img is not None:
-                        img = preprocessing.resize_image(img)
-                        img = preprocessing.apply_clahe(img)
-                        X.append(img)
-                        y.append(label)
+                for img_name in files:
+                    
+                    if img_name.lower().endswith(('.jpg', '.jpeg', '.png')):
+                        img_path = os.path.join(root, img_name)
+                        img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+                        
+                        if img is not None:
+                            img = preprocessing.resize_image(img)
+                            img = preprocessing.apply_clahe(img)
+                            X.append(img)
+                            y.append(label)
                         
     return np.array(X), np.array(y)
 
