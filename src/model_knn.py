@@ -6,22 +6,23 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import GridSearchCV
 
-def train_and_evaluate_knn(data_dir, experiment_name='PCA_Ideal', min_k=5):
+def train_and_evaluate_knn(data_dir, experiment_name, min_k=5, feature_suffix='pca'):
     
     print(f"🚀 Starting KNN Training for Experiment: {experiment_name}")
     
     
     try:
-        files = os.listdir(data_dir)
-        x_train_file = [f for f in files if f.startswith('X_train') and f.endswith('.npy')][0]
-        x_test_file = [f for f in files if f.startswith('X_test') and f.endswith('.npy')][0]
+        train_file = f'X_train_{feature_suffix}.npy'
+        test_file = f'X_test_{feature_suffix}.npy'
         
-        X_train = np.load(os.path.join(data_dir, x_train_file))
-        X_test = np.load(os.path.join(data_dir, x_test_file))
+        X_train = np.load(os.path.join(data_dir, train_file))
+        X_test = np.load(os.path.join(data_dir, test_file))
+        
         y_train = np.load(os.path.join(data_dir, 'y_train.npy'))
         y_test = np.load(os.path.join(data_dir, 'y_test.npy'))
-        print(f"✅ Data loaded successfully from {data_dir}")
-    except Exception as e:
+        
+        print(f"✅ Data loaded successfully from {data_dir} (Suffix: {feature_suffix})")
+    except FileNotFoundError as e:
         print(f"❌ Failed to load data: {e}")
         return
 
@@ -72,9 +73,11 @@ def train_and_evaluate_knn(data_dir, experiment_name='PCA_Ideal', min_k=5):
     return final_knn
 
 if __name__ == "__main__":
-    
     train_and_evaluate_knn(data_dir='./data/Ideal', experiment_name='Ideal_PCA')
-    train_and_evaluate_knn(data_dir='./data/Stressed', experiment_name='Stressed_PCA')
-    train_and_evaluate_knn(data_dir='./data/HOG_Stressed', experiment_name='Stressed_HOG')
-    if os.path.exists('./data/LDA_Results'):
-        train_and_evaluate_knn(data_dir='./data/LDA_Results', experiment_name='Ideal_LDA')
+
+    train_and_evaluate_knn(data_dir='./data/Stressed', experiment_name='Stressed_PCA', feature_suffix='pca')
+
+    train_and_evaluate_knn(data_dir='./data/Stressed', experiment_name='Stressed_HOG', feature_suffix='hog')
+
+    if os.path.exists('./data/Ideal/X_train_lda.npy'):
+        train_and_evaluate_knn(data_dir='./data/Ideal', experiment_name='Ideal_LDA', feature_suffix='lda')
