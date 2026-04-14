@@ -15,7 +15,7 @@ This module handles all pixel-level transformations. These functions are designe
 
 ---
 
-### 2. `src/data_loader.py` (The Orchestrator)
+### 2. `src/data_loader.py`
 This file acts as the "Central Command" for data. It manages the entire lifecycle of the data, from automated downloading to delivering model-ready arrays.
 
 | Function Name | Description | Use Case |
@@ -26,7 +26,7 @@ This file acts as the "Central Command" for data. It manages the entire lifecycl
 
 ---
 
-### 3. `main.py` (Full Automated Pipeline)
+### 3. `main.py`
 The `main.py` script has been upgraded to a **Full Automated Pipeline**. It coordinates the entire workflow: data fetching, model selection, training, and the generation of academic-grade evaluation plots.
 
 #### **Structure Breakdown**
