@@ -35,28 +35,3 @@ def apply_gaussian_blur(image, kernel_size=(5, 5)):
 def apply_clahe(image):
     # For dataset stressed: apply CLAHE
     return cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(image)
-
-def binarize_image(image):
-    # Background Suppression: Apply Otsu's thresholding to separate the hand
-    _, binary_img = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    return binary_img
-
-def preprocess_single_image(image, dataset_type='ideal', apply_binarization=False):
-    """
-    The data loader only needs to call this single function.
-    """
-    img = resize_image(image, size=(64, 64))
-    
-    if is_training:
-            img = augment_image(img)    
-        
-    if dataset_type == 'stressed':
-        # Sequence definition
-        img = apply_gaussian_blur(img)
-        img = apply_clahe(img)
-        
-        if apply_binarization:
-            img = binarize_image(img)
-            
-    img = normalize_pixel_values(img)
-    return img
