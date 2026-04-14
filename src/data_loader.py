@@ -18,7 +18,7 @@ def load_and_preprocess_data(data_path, dataset_type='ideal'):
     
     if dataset_type == 'ideal':
       
-        # Dataset 1: ID_Label.png (e.g. 1000_5.png)
+        # Dataset ideal: ID_Label.png (e.g. 1000_5.png)
         for root, _, files in os.walk(data_path):
           
             for file in files:
@@ -41,7 +41,7 @@ def load_and_preprocess_data(data_path, dataset_type='ideal'):
         for root, dirs, files in os.walk(data_path):
             folder_name = os.path.basename(root)
             
-            # when the folder name is a number (0, 1, 2, 3, 4, 5) is it regarded as a tag folder.
+            # Dataset Stressed: when the folder name is a number (0, 1, 2, 3, 4, 5) is it regarded as a tag folder.
             if folder_name.isdigit():
                 label = int(folder_name)
                 
@@ -53,6 +53,10 @@ def load_and_preprocess_data(data_path, dataset_type='ideal'):
                         
                         if img is not None:
                             img = preprocessing.resize_image(img)
+                            
+                            # Apply Gaussian Blur before CLAHE to reduce high-frequency noise
+                            img = preprocessing.apply_gaussian_blur(img)
+                            
                             img = preprocessing.apply_clahe(img)
                             X.append(img)
                             y.append(label)

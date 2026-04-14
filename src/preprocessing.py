@@ -7,14 +7,14 @@ def resize_image(image, size=(64, 64)):
     return cv2.resize(image, size)
 
 def normalize_pixel_values(img_array):
-    # Z-score standardization [cite: 42]
+    # Z-score standardization
     img_array = img_array.astype('float32')
     return (img_array - np.mean(img_array)) / (np.std(img_array) + 1e-7)
 
 def augment_image(image):
     """
     Apply random data augmentation to improve the model's robustness 
-    against variations in hand orientation[cite: 43, 44].
+    against variations in hand orientation.
     """
     # Randomly select one augmentation technique: none, horizontal flip, or rotation
     choice = np.random.choice(['none', 'flip', 'rotate'])
@@ -27,6 +27,10 @@ def augment_image(image):
         return rotate(image, angle, reshape=False)
     
     return image
+
+def apply_gaussian_blur(image, kernel_size=(5, 5)):
+    # Reduce noices: Apply Gaussian Blur to reduce high-frequency background noise
+    return cv2.GaussianBlur(image, kernel_size, 0)
 
 def apply_clahe(image):
     # For dataset stressed: apply CLAHE
