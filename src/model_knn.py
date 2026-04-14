@@ -6,11 +6,24 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import GridSearchCV
 
-def train_and_evaluate_knn(X_train, y_train, X_test, y_test, experiment_name, min_k=5):
-    """
-    Trains K-NN using GridSearchCV, plots tuning curve, and evaluates the model.
-    """
+def train_and_evaluate_knn(data_dir, experiment_name, min_k=5, feature_suffix='pca'):
+    
     print(f"Starting KNN Training for Experiment: {experiment_name}")
+    
+    try:
+        train_file = f'X_train_{feature_suffix}.npy'
+        test_file = f'X_test_{feature_suffix}.npy'
+        
+        X_train = np.load(os.path.join(data_dir, train_file))
+        X_test = np.load(os.path.join(data_dir, test_file))
+        
+        y_train = np.load(os.path.join(data_dir, 'y_train.npy'))
+        y_test = np.load(os.path.join(data_dir, 'y_test.npy'))
+        
+        print(f"Data loaded successfully from {data_dir} (Suffix: {feature_suffix})")
+    except FileNotFoundError as e:
+        print(f"Failed to load data: {e}")
+        return
 
     k_range = range(1, 31)
     param_grid = {'n_neighbors': list(k_range)}
@@ -29,10 +42,8 @@ def train_and_evaluate_knn(X_train, y_train, X_test, y_test, experiment_name, mi
     else:
         print(f"Using Auto-best K={final_k} as it meets the robustness floor.")
 
-    # Unified path logic to prevent FileNotFoundError
-    results_dir = './results'
-    os.makedirs(results_dir, exist_ok=True)
-    
+    # Prevent FileNotFoundError
+    os.makedirs('./results', exist_ok=True)
     plt.figure(figsize=(10, 6))
     plt.plot(list(k_range), gs.cv_results_['mean_test_score'], marker='o', color='green')
     plt.axvline(x=final_k, color='red', linestyle='--', label=f'Selected K={final_k}')
@@ -41,10 +52,8 @@ def train_and_evaluate_knn(X_train, y_train, X_test, y_test, experiment_name, mi
     plt.ylabel('Mean CV Accuracy')
     plt.legend()
     plt.grid(True)
-    
-    plot_path = os.path.join(results_dir, f'knn_tuning_{experiment_name.lower()}.png')
-    plt.savefig(plot_path)
-    print(f"Tuning chart saved to {plot_path}")
+    plt.savefig(f'./results/knn_tuning_{experiment_name.lower()}.png')
+    print(f"Tuning chart saved to ./results/knn_tuning_{experiment_name.lower()}.png")
 
     final_knn = KNeighborsClassifier(n_neighbors=final_k, weights='distance')
     final_knn.fit(X_train, y_train)
@@ -57,11 +66,9 @@ def train_and_evaluate_knn(X_train, y_train, X_test, y_test, experiment_name, mi
     print("Detailed Classification Report:")
     print(classification_report(y_test, y_pred))
 
-    # Create a clean models directory for joblib dumps
-    models_dir = './models'
-    os.makedirs(models_dir, exist_ok=True)
-    model_save_path = os.path.join(models_dir, f'knn_model_{experiment_name.lower()}.joblib')
+    # Saving Path
+    model_save_path = os.path.join(data_dir, f'knn_model_{experiment_name.lower()}.joblib')
     joblib.dump(final_knn, model_save_path)
     print(f"Model saved to: {model_save_path}")
     
-    return final_knn, y_pred
+    return final_knn
