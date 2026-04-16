@@ -16,7 +16,7 @@ from src.model_pca_hog import run_hog_experiment
 from src.model_isomap import model_isomap # Updated to our new function
 
 # Evaluation Imports for Automated Plots
-from src.evaluation_plots import plot_confusion_matrix, plot_robustness_decay, plot_tradeoff
+from src.evaluation import plot_confusion_matrix, plot_robustness_decay, plot_tradeoff
 
 def run_module_1():
     """
