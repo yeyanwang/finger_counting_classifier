@@ -5,6 +5,8 @@ model training, and evaluation for all three modules.
 
 import numpy as np
 import os
+from sklearn.preprocessing import StandardScaler
+
 # 1. Import our data pipeline
 from src.data_loader import get_data_pipeline
 
@@ -13,7 +15,7 @@ from src.model_pca import run_pca_experiment, save_results as save_pca_results
 from src.model_knn import train_and_evaluate_knn
 from src.model_pca_lda import run_lda_experiment
 from src.model_pca_hog import run_hog_experiment
-from src.model_isomap import model_isomap # Updated to our new function
+from src.model_isomap import model_isomap
 
 # Evaluation Imports for Automated Plots
 from src.evaluation import plot_confusion_matrix, plot_robustness_decay, plot_tradeoff
@@ -170,6 +172,11 @@ def run_module_3():
     # Candidate D: ISOMAP
     print("\n[Candidate D] Evaluating ISOMAP...")
     from sklearn.manifold import Isomap
+    
+    scaler = StandardScaler()
+    X_train_game = scaler.fit_transform(X_train_game)
+    X_test_game = scaler.transform(X_test_game)
+
     iso_obj = Isomap(n_neighbors=15, n_components=50)
     X_tr_iso = iso_obj.fit_transform(X_train_game)
     X_te_iso = iso_obj.transform(X_test_game)
