@@ -11,7 +11,7 @@ from src.data_loader import get_data_pipeline
 # Model Imports
 from src.model_pca import run_pca_experiment, save_results as save_pca_results
 from src.model_knn import train_and_evaluate_knn
-from src.model_pca_Lda import run_lda_experiment
+from src.model_pca_lda import run_lda_experiment
 from src.model_pca_hog import run_hog_experiment
 from src.model_isomap import model_isomap # Updated to our new function
 
