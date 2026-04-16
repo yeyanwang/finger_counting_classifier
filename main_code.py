@@ -170,7 +170,7 @@ def run_module_3():
     # Candidate D: ISOMAP
     print("\n[Candidate D] Evaluating ISOMAP...")
     from sklearn.manifold import Isomap
-    iso_obj = Isomap(n_neighbors=5, n_components=50)
+    iso_obj = Isomap(n_neighbors=15, n_components=50)
     X_tr_iso = iso_obj.fit_transform(X_train_game)
     X_te_iso = iso_obj.transform(X_test_game)
     
