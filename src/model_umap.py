@@ -26,7 +26,7 @@ def apply_umap(X_train, X_test, n_components=10, n_neighbors=15, random_state=42
     
     # Define the robust pipeline: PCA for denoising, UMAP for manifold extraction
     pipeline = Pipeline([
-        ('pca', PCA(n_components=100, random_state=random_state)),
+        ('pca', PCA(n_components=0.95, random_state=random_state)),
         ('umap', umap.UMAP(n_neighbors=n_neighbors, 
                            n_components=n_components, 
                            random_state=random_state,
