@@ -5,7 +5,6 @@ model training, and evaluation for all three modules.
 
 import numpy as np
 import os
-from sklearn.preprocessing import StandardScaler
 
 # 1. Import our data pipeline
 from src.data_loader import get_data_pipeline
