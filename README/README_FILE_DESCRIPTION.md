@@ -8,7 +8,7 @@ This module handles all pixel-level transformations. These functions are designe
 | Function Name | Description | When to call it? |
 | :--- | :--- | :--- |
 | `resize_image(image)` | Resizes the image to a uniform 64x64 pixels. | Mandatory for all input images to maintain feature vector consistency. |
-| **`apply_gaussian_blur(image)`** | **New:** Applies Gaussian smoothing to reduce background high-frequency noise. | **Critical for the Stressed dataset**; should be called before CLAHE. |
+| `apply_gaussian_blur(image)` | Applies Gaussian smoothing to reduce background high-frequency noise. | **Critical for the Stressed dataset**; should be called before CLAHE. |
 | `apply_clahe(image)` | Enhances contrast using CLAHE to mitigate uneven lighting conditions. | Highly recommended for the Stressed dataset after denoising. |
 | `augment_image(image)` | Randomly applies horizontal flips or rotations (±15°). | Training phase only; improves model robustness to hand orientations. |
 | `normalize_pixel_values(arr)` | Performs pixel-level Z-score standardization. | The final step before feeding data into dimensionality reduction models. |
@@ -34,8 +34,10 @@ The project implements a highly modular architecture for feature extraction, dim
 | `model_pca.py` | Principal Component Analysis (PCA) | Serves as the baseline linear dimensionality reduction technique. |
 | `model_pca_lda.py` | PCA + Linear Discriminant Analysis | Supervised reduction to maximize class separability; particularly effective for the limited-class Rock-Paper-Scissors subset. |
 | `model_pca_hog.py` | Histogram of Oriented Gradients (HOG) | Extracts robust edge and shape features prior to PCA; highly resilient to the complex backgrounds in the Stressed dataset. |
-| `model_isomap.py` | ISOMAP (Manifold Learning) | A non-linear approach used to capture the underlying geometric structure and continuous transformations of hand poses. |
-| `model_knn.py` | K-Nearest Neighbors (KNN) | The universal classifier used across all experiments. It features automated **5-fold cross-validation** to dynamically tune the optimal $K$ hyperparameter. |
+| `model_isomap.py` | ISOMAP (Manifold Learning) | Retained to demonstrate algorithmic vulnerability when exposed to the high-dimensional noise of the Stressed dataset. |
+| `model_umap.py` | UMAP (Manifold Learning) | Replaces ISOMAP by preserving local topology with significantly higher resistance to noise and computational stability. |
+| `model_knn.py` | K-Nearest Neighbors (KNN) | The baseline classifier used across experiments. It features automated **5-fold cross-validation** to dynamically tune the optimal $K$. |
+| `model_svm.py` | Support Vector Machine (SVM) | Robust margin-based classifier utilizing an RBF kernel and automated 5-Fold Cross Validation. |
 
 ---
 
@@ -50,13 +52,13 @@ This module centralizes all academic-grade reporting metrics. It is automaticall
 
 ---
 
-### 5. `main.py` (Full Automated Pipeline)
+### 5. `main.py` 
 The `main.py` script serves as the **Full Automated Pipeline**. It coordinates the entire workflow: data fetching, dynamic model selection, training, and the generation of evaluation plots.
 
 #### **Structure Breakdown**
-* **`run_module_1()`**: Executes foundational modeling (PCA, PCA+LDA, HOG+PCA) and **ISOMAP** on the **Ideal dataset**.
-* **`run_module_2()`**: Performs **Robustness Evaluation**. Compares performance across Ideal vs. Stressed environments and automatically generates **Robustness Decay** charts.
-* **`run_module_3()`**: **Strategic Application (RPS)**. Features an **Automated Tournament** that cross-evaluates all models (PCA, LDA, HOG, ISOMAP) to select and deploy the best-performing pipeline for the Rock-Paper-Scissors subset (labels 0, 2, 5).
+* **`run_module_1()`**: Establishes a pure baseline performance on the **Ideal dataset** using linear and structural extractors (PCA, PCA+LDA, HOG+PCA). *(Note: Non-linear models are intentionally excluded here to prevent overfitting on clean data).*
+* **`run_module_2()`**: **Robustness Tournament (Stressed Conditions)**. Evaluates ALL feature extractors (PCA, LDA, HOG, ISOMAP, UMAP) against each other to dynamically identify the most robust feature extraction method. Automatically generates **Robustness Decay** charts.
+* **`run_module_3()`**: **Strategic Application (RPS)**. Inherits the winning feature extractor from Module 2, applies it to the Rock-Paper-Scissors subset (labels 0, 2, 5), and initiates a **Classifier Showdown (KNN vs. SVM)** to deploy the ultimate pipeline.
 
 ---
 
