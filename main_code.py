@@ -28,6 +28,12 @@ def run_module_1():
     """
     print("MODULE 1: IDEAL CONDITIONS")
     
+    # Get ideal dataset to evaluate LDA and HOG identically to PCA
+    X_train, _, X_test, y_train, _, y_test = get_data_pipeline('ideal')
+    tmp_dir = './data/Ideal_Temp'
+    os.makedirs(tmp_dir, exist_ok=True)
+    results = {}
+    
     # Step 1.1: PCA
     print("\n[Step 1.1] Running Basic PCA Pipeline...")
     pca_data, pca_labels, pca_model = run_pca_experiment(dataset_type='ideal')
@@ -36,14 +42,51 @@ def run_module_1():
     # Updated to capture acc for robustness comparison in Module 2
     _, ideal_pca_acc, y_t, y_p = train_and_evaluate_knn(data_dir='./data/Ideal', experiment_name='Ideal_PCA')
     plot_confusion_matrix(y_t, y_p, 'Ideal_PCA')
+    results['PCA'] = ideal_pca_acc
 
     # Step 1.2: PCA + LDA
     print("\n[Step 1.2] Running PCA + LDA Pipeline...")
-    run_lda_experiment(dataset_type='ideal')
+    run_lda_experiment(dataset_type='ideal') # Keeps the original plots
+    from sklearn.decomposition import PCA
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+    pca_obj = PCA(n_components=0.95)
+    X_tr_pca = pca_obj.fit_transform(X_train)
+    X_te_pca = pca_obj.transform(X_test)
+    lda_obj = LDA()
+    X_tr_lda = lda_obj.fit_transform(X_tr_pca, y_train)
+    X_te_lda = lda_obj.transform(X_te_pca)
+    
+    np.save(os.path.join(tmp_dir, 'X_train_pca.npy'), X_tr_lda)
+    np.save(os.path.join(tmp_dir, 'X_test_pca.npy'), X_te_lda)
+    np.save(os.path.join(tmp_dir, 'y_train.npy'), y_train)
+    np.save(os.path.join(tmp_dir, 'y_test.npy'), y_test)
+    _, acc_lda, _, _ = train_and_evaluate_knn(data_dir=tmp_dir, experiment_name='Ideal_LDA')
+    results['LDA'] = acc_lda
 
     # Step 1.3: HOG + PCA
     print("\n[Step 1.3] Running HOG + PCA Pipeline...")
-    run_hog_experiment(dataset_type='ideal')
+    run_hog_experiment(dataset_type='ideal') # Keeps the original plots
+    from skimage.feature import hog
+    def extract_hog(data):
+        return np.array([hog(img.reshape(64, 64), orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2)) for img in data])
+    X_tr_hog = extract_hog(X_train)
+    X_te_hog = extract_hog(X_test)
+    pca_hog = PCA(n_components=0.95)
+    X_tr_hog_pca = pca_hog.fit_transform(X_tr_hog)
+    X_te_hog_pca = pca_hog.transform(X_te_hog)
+    
+    np.save(os.path.join(tmp_dir, 'X_train_pca.npy'), X_tr_hog_pca)
+    np.save(os.path.join(tmp_dir, 'X_test_pca.npy'), X_te_hog_pca)
+    _, acc_hog, _, _ = train_and_evaluate_knn(data_dir=tmp_dir, experiment_name='Ideal_HOG')
+    results['HOG'] = acc_hog
+
+    # Print a clean summary for Module 1
+    print("\n" + "="*40)
+    print("MODULE 1 IDEAL BASELINE RESULTS")
+    print("="*40)
+    for model_name, accuracy in sorted(results.items(), key=lambda item: item[1], reverse=True):
+        print(f" {model_name:12s} : {accuracy:.4f}")
+    print("="*40)
 
     print("\n MODULE 1 COMPLETE.")
     return ideal_pca_acc # Pass this to Module 2 for robustness plot
@@ -95,7 +138,7 @@ def run_module_2(ideal_baseline_acc):
 
     # Step 2.3: Stressed HOG
     print("\n[Evaluating] HOG + PCA...")
-    run_hog_experiment(dataset_type='stressed') # Keep original file save
+    run_hog_experiment(dataset_type='stressed')
     from skimage.feature import hog
     def extract_hog(data):
         return np.array([hog(img.reshape(64, 64), orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2)) for img in data])
@@ -114,8 +157,9 @@ def run_module_2(ideal_baseline_acc):
     print("\n[Evaluating] ISOMAP...")
     from sklearn.manifold import Isomap
     from sklearn.pipeline import Pipeline
+    # n_components=0.95 prevents crashes on small datasets
     iso_pipeline = Pipeline([
-        ('pca', PCA(n_components=100, random_state=42)),
+        ('pca', PCA(n_components=0.95, random_state=42)),
         ('isomap', Isomap(n_neighbors=10, n_components=10))
     ])
     X_tr_iso = iso_pipeline.fit_transform(X_train)
@@ -135,11 +179,14 @@ def run_module_2(ideal_baseline_acc):
 
     # Select the ultimate feature extractor
     best_extractor = max(results, key=results.get)
+    print("\n" + "="*40)
     print("MODULE 2 FULL TOURNAMENT RESULTS")
+    print("="*40)
     for model_name, accuracy in sorted(results.items(), key=lambda item: item[1], reverse=True):
         print(f" {model_name:12s} : {accuracy:.4f}")
         
     print(f"--> Most Robust Feature Extractor: {best_extractor}")
+    print("="*40)
     
     print("\n MODULE 2 COMPLETE.")
     return best_extractor
@@ -195,7 +242,8 @@ def run_module_3(best_extractor):
         X_tr_feats = pca_hog.fit_transform(X_tr_hog)
         X_te_feats = pca_hog.transform(X_te_hog)
     elif best_extractor == 'ISOMAP':
-        iso_pipeline = Pipeline([('pca', PCA(n_components=100, random_state=42)), ('isomap', Isomap(n_neighbors=10, n_components=10))])
+        # FIXED: n_components=0.95 here as well
+        iso_pipeline = Pipeline([('pca', PCA(n_components=0.95, random_state=42)), ('isomap', Isomap(n_neighbors=10, n_components=10))])
         X_tr_feats = iso_pipeline.fit_transform(X_train_game)
         X_te_feats = iso_pipeline.transform(X_test_game)
     elif best_extractor == 'UMAP':
@@ -219,9 +267,12 @@ def run_module_3(best_extractor):
     best_classifier = "SVM" if acc_svm > acc_knn else "KNN"
     final_acc = max(acc_knn, acc_svm)
 
+    print("\n" + "="*40)
     print("MODULE 3 FINAL PREDICTION RESULTS")
+    print("="*40)
     print(f" Feature: {best_extractor:8s} + KNN Accuracy : {acc_knn:.4f}")
     print(f" Feature: {best_extractor:8s} + SVM Accuracy : {acc_svm:.4f}")
+    print("="*40)
     print(f"--> Optimal Deployment Configuration: [{best_extractor} + {best_classifier}] with {final_acc:.4f} accuracy.")
 
     # Step 3.4: Deploy the best performer
