@@ -177,7 +177,7 @@ def run_module_3():
     X_train_game = scaler.fit_transform(X_train_game)
     X_test_game = scaler.transform(X_test_game)
 
-    iso_obj = Isomap(n_neighbors=15, n_components=50)
+    iso_obj = Isomap(n_neighbors=10, n_components=10)
     X_tr_iso = iso_obj.fit_transform(X_train_game)
     X_te_iso = iso_obj.transform(X_test_game)
     
