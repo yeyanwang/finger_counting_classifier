@@ -136,12 +136,10 @@ def run_module_2(ideal_baseline_acc):
 
     # Select the ultimate feature extractor
     best_extractor = max(results, key=results.get)
-    print("\n" + "="*40)
-    print(" MODULE 2 FULL TOURNAMENT RESULTS")
-    print("="*40)
+    print("MODULE 2 FULL TOURNAMENT RESULTS")
     for model_name, accuracy in sorted(results.items(), key=lambda item: item[1], reverse=True):
         print(f" {model_name:12s} : {accuracy:.4f}")
-    print("="*40)
+        
     print(f"--> Most Robust Feature Extractor: {best_extractor}")
     
     print("\n MODULE 2 COMPLETE.")
@@ -222,12 +220,9 @@ def run_module_3(best_extractor):
     best_classifier = "SVM" if acc_svm > acc_knn else "KNN"
     final_acc = max(acc_knn, acc_svm)
 
-    print("\n" + "="*40)
-    print(" MODULE 3 FINAL PREDICTION RESULTS")
-    print("="*40)
+    print("MODULE 3 FINAL PREDICTION RESULTS")
     print(f" Feature: {best_extractor:8s} + KNN Accuracy : {acc_knn:.4f}")
     print(f" Feature: {best_extractor:8s} + SVM Accuracy : {acc_svm:.4f}")
-    print("="*40)
     print(f"--> Optimal Deployment Configuration: [{best_extractor} + {best_classifier}] with {final_acc:.4f} accuracy.")
 
     # Step 3.4: Deploy the best performer
