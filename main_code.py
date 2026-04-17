@@ -16,9 +16,12 @@ from src.model_knn import train_and_evaluate_knn
 from src.model_pca_lda import run_lda_experiment
 from src.model_pca_hog import run_hog_experiment
 from src.model_isomap import model_isomap
+from src.model_umap import apply_umap
+from src.model_svm import train_and_evaluate_svm
 
 # Evaluation Imports for Automated Plots
 from src.evaluation import plot_confusion_matrix, plot_robustness_decay, plot_tradeoff
+
 
 def run_module_1():
     """
@@ -43,19 +46,6 @@ def run_module_1():
     print("\n[Step 1.3] Running HOG + PCA Pipeline...")
     run_hog_experiment(dataset_type='ideal')
 
-    # Step 1.4: ISOMAP
-    print("\n[Step 1.4] Running ISOMAP Pipeline...")
-    X_train, _, X_test, y_train, _, y_test = get_data_pipeline('ideal')
-    X_tr_iso, X_te_iso, _ = model_isomap(X_train, X_test)
-    
-    iso_dir = './data/Isomap_Ideal'
-    os.makedirs(iso_dir, exist_ok=True)
-    np.save(os.path.join(iso_dir, 'X_train_pca.npy'), X_tr_iso)
-    np.save(os.path.join(iso_dir, 'X_test_pca.npy'), X_te_iso)
-    np.save(os.path.join(iso_dir, 'y_train.npy'), y_train)
-    np.save(os.path.join(iso_dir, 'y_test.npy'), y_test)
-    train_and_evaluate_knn(data_dir=iso_dir, experiment_name='Ideal_Isomap')
-
     print("\n MODULE 1 COMPLETE.")
     return ideal_pca_acc # Pass this to Module 2 for robustness plot
 
@@ -63,41 +53,112 @@ def run_module_1():
 def run_module_2(ideal_baseline_acc):
     """
     Module 2: Robustness Evaluation under Complex Environments
+    Evaluates ALL models (PCA, LDA, HOG, ISOMAP, UMAP) on the full Stressed dataset
+    to determine the most robust feature extraction method.
     """
-    print("STARTING MODULE 2: STRESSED CONDITIONS")
+    print("\nSTARTING MODULE 2: STRESSED CONDITIONS (ROBUSTNESS TOURNAMENT)")
+    
+    # Get full stressed dataset
+    X_train, _, X_test, y_train, _, y_test = get_data_pipeline('stressed')
+    
+    tmp_dir = './data/Stressed_Temp'
+    os.makedirs(tmp_dir, exist_ok=True)
+    results = {}
 
-    # Step 2.1: Stressed PCA
+    # Step 2.1: Stressed PCA (Baseline for decay plot)
+    print("\n[Evaluating] Standard PCA...")
     pca_data, labels, pca_model = run_pca_experiment(dataset_type='stressed')
     save_pca_results(pca_data, labels, pca_model, dataset_type='stressed')
-    _, stressed_pca_acc, y_t, y_p = train_and_evaluate_knn(data_dir='./data/Stressed', experiment_name='Stressed_PCA', feature_suffix='pca')
+    _, acc_pca, y_t, y_p = train_and_evaluate_knn(data_dir='./data/Stressed', experiment_name='Stressed_PCA', feature_suffix='pca')
     
-    # Automated Robustness Decay Plot
-    plot_robustness_decay(ideal_acc=ideal_baseline_acc, stressed_acc=stressed_pca_acc, model_name="PCA + KNN")
+    plot_robustness_decay(ideal_acc=ideal_baseline_acc, stressed_acc=acc_pca, model_name="PCA + KNN")
     plot_confusion_matrix(y_t, y_p, 'Stressed_PCA')
+    results['PCA'] = acc_pca
 
-    # Step 2.2: Stressed PCA + LDA
-    print("\n[Step 2.2] Running PCA + LDA on Stressed Dataset...")
-    run_lda_experiment(dataset_type='stressed')
+    # Step 2.2: Stressed LDA
+    print("\n[Evaluating] PCA + LDA...")
+    run_lda_experiment(dataset_type='stressed') # Keep original file save
+    from sklearn.decomposition import PCA
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+    pca_obj = PCA(n_components=0.95)
+    X_tr_pca = pca_obj.fit_transform(X_train)
+    X_te_pca = pca_obj.transform(X_test)
+    lda_obj = LDA()
+    X_tr_lda = lda_obj.fit_transform(X_tr_pca, y_train)
+    X_te_lda = lda_obj.transform(X_te_pca)
     
-    # Step 2.3: Stressed HOG + PCA
-    print("\n[Step 2.3] Running HOG + PCA on Stressed Dataset...")
-    run_hog_experiment(dataset_type='stressed')
+    np.save(os.path.join(tmp_dir, 'X_train_pca.npy'), X_tr_lda)
+    np.save(os.path.join(tmp_dir, 'X_test_pca.npy'), X_te_lda)
+    np.save(os.path.join(tmp_dir, 'y_train.npy'), y_train)
+    np.save(os.path.join(tmp_dir, 'y_test.npy'), y_test)
+    _, acc_lda, _, _ = train_and_evaluate_knn(data_dir=tmp_dir, experiment_name='Stressed_LDA')
+    results['LDA'] = acc_lda
 
+    # Step 2.3: Stressed HOG
+    print("\n[Evaluating] HOG + PCA...")
+    run_hog_experiment(dataset_type='stressed') # Keep original file save
+    from skimage.feature import hog
+    def extract_hog(data):
+        return np.array([hog(img.reshape(64, 64), orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2)) for img in data])
+    X_tr_hog = extract_hog(X_train)
+    X_te_hog = extract_hog(X_test)
+    pca_hog = PCA(n_components=0.95)
+    X_tr_hog_pca = pca_hog.fit_transform(X_tr_hog)
+    X_te_hog_pca = pca_hog.transform(X_te_hog)
+    
+    np.save(os.path.join(tmp_dir, 'X_train_pca.npy'), X_tr_hog_pca)
+    np.save(os.path.join(tmp_dir, 'X_test_pca.npy'), X_te_hog_pca)
+    _, acc_hog, _, _ = train_and_evaluate_knn(data_dir=tmp_dir, experiment_name='Stressed_HOG')
+    results['HOG'] = acc_hog
+
+    # Step 2.4: Stressed ISOMAP
+    print("\n[Evaluating] ISOMAP...")
+    from sklearn.manifold import Isomap
+    from sklearn.pipeline import Pipeline
+    iso_pipeline = Pipeline([
+        ('pca', PCA(n_components=100, random_state=42)),
+        ('isomap', Isomap(n_neighbors=10, n_components=10))
+    ])
+    X_tr_iso = iso_pipeline.fit_transform(X_train)
+    X_te_iso = iso_pipeline.transform(X_test)
+    np.save(os.path.join(tmp_dir, 'X_train_pca.npy'), X_tr_iso)
+    np.save(os.path.join(tmp_dir, 'X_test_pca.npy'), X_te_iso)
+    _, acc_iso, _, _ = train_and_evaluate_knn(data_dir=tmp_dir, experiment_name='Stressed_Isomap')
+    results['ISOMAP'] = acc_iso
+
+    # Step 2.5: Stressed UMAP
+    print("\n[Evaluating] UMAP...")
+    X_tr_umap, X_te_umap, _ = apply_umap(X_train, X_test, n_components=10, n_neighbors=15)
+    np.save(os.path.join(tmp_dir, 'X_train_pca.npy'), X_tr_umap)
+    np.save(os.path.join(tmp_dir, 'X_test_pca.npy'), X_te_umap)
+    _, acc_umap, _, _ = train_and_evaluate_knn(data_dir=tmp_dir, experiment_name='Stressed_UMAP')
+    results['UMAP'] = acc_umap
+
+    # Select the ultimate feature extractor
+    best_extractor = max(results, key=results.get)
+    print("\n" + "="*40)
+    print(" MODULE 2 FULL TOURNAMENT RESULTS")
+    print("="*40)
+    for model_name, accuracy in sorted(results.items(), key=lambda item: item[1], reverse=True):
+        print(f" {model_name:12s} : {accuracy:.4f}")
+    print("="*40)
+    print(f"--> Most Robust Feature Extractor: {best_extractor}")
+    
     print("\n MODULE 2 COMPLETE.")
+    return best_extractor
 
-# Can be updated......
-def run_module_3():
+
+def run_module_3(best_extractor):
     """
     Module 3: Rock-Paper-Scissors (Strategic Application)
-    Automated Tournament: Compares PCA, LDA, HOG+PCA, and ISOMAP to find the best game classifier.
+    Takes the best feature extractor from Module 2, applies it to the game subset,
+    and performs further selection between Classifiers (KNN vs SVM) for final prediction.
     """
-    print("\nSTARTING MODULE 3: ROCK-PAPER-SCISSORS")
+    print(f"\nSTARTING MODULE 3: ROCK-PAPER-SCISSORS (Deploying {best_extractor})")
 
     # Step 3.1: Data Acquisition & Filtering
-    # Load Stressed data for a realistic "game" scenario
     X_train, _, X_test, y_train, _, y_test = get_data_pipeline('stressed')
 
-    # Filter labels to only include 0 (Rock), 2 (Scissors), 5 (Paper)
     game_labels = [0, 2, 5]
     mask_train = np.isin(y_train, game_labels)
     mask_test = np.isin(y_test, game_labels)
@@ -109,103 +170,77 @@ def run_module_3():
     
     print(f"Game Subset created with {len(X_train_game)} samples.")
 
-    # Dictionary to store accuracy and transformed data for final deployment
-    results = {}
-    candidates_data = {}
-    
+    # Step 3.2: Extract Features using the Winner from Module 2
+    print(f"\n[Step 3.1] Transforming data using {best_extractor}...")
+    from sklearn.decomposition import PCA
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+    from sklearn.manifold import Isomap
+    from sklearn.pipeline import Pipeline
+    from skimage.feature import hog
+
+    if best_extractor == 'PCA':
+        pca_obj = PCA(n_components=0.95)
+        X_tr_feats = pca_obj.fit_transform(X_train_game)
+        X_te_feats = pca_obj.transform(X_test_game)
+    elif best_extractor == 'LDA':
+        pca_obj = PCA(n_components=0.95)
+        X_tr_pca = pca_obj.fit_transform(X_train_game)
+        X_te_pca = pca_obj.transform(X_test_game)
+        lda_obj = LDA(n_components=2)
+        X_tr_feats = lda_obj.fit_transform(X_tr_pca, y_train_game)
+        X_te_feats = lda_obj.transform(X_te_pca)
+    elif best_extractor == 'HOG':
+        def extract_hog(data):
+            return np.array([hog(img.reshape(64, 64), orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2)) for img in data])
+        X_tr_hog = extract_hog(X_train_game)
+        X_te_hog = extract_hog(X_test_game)
+        pca_hog = PCA(n_components=0.95)
+        X_tr_feats = pca_hog.fit_transform(X_tr_hog)
+        X_te_feats = pca_hog.transform(X_te_hog)
+    elif best_extractor == 'ISOMAP':
+        iso_pipeline = Pipeline([('pca', PCA(n_components=100, random_state=42)), ('isomap', Isomap(n_neighbors=10, n_components=10))])
+        X_tr_feats = iso_pipeline.fit_transform(X_train_game)
+        X_te_feats = iso_pipeline.transform(X_test_game)
+    elif best_extractor == 'UMAP':
+        X_tr_feats, X_te_feats, _ = apply_umap(X_train_game, X_test_game, n_components=10, n_neighbors=15)
+
+    # Step 3.3: Further Classifier Selection (KNN vs SVM)
+    print("\n[Step 3.2] Classifier Selection: KNN vs SVM...")
     tmp_dir = './data/game_Temp'
     os.makedirs(tmp_dir, exist_ok=True)
-
-    # Candidate A: Standard PCA Pipeline
-    print("\n[Candidate A] Evaluating PCA...")
-    from sklearn.decomposition import PCA
-    pca_obj = PCA(n_components=0.95)
-    X_tr_pca = pca_obj.fit_transform(X_train_game)
-    X_te_pca = pca_obj.transform(X_test_game)
-    
-    # Save temporarily for KNN evaluation
-    np.save(os.path.join(tmp_dir, 'X_train_pca.npy'), X_tr_pca)
-    np.save(os.path.join(tmp_dir, 'X_test_pca.npy'), X_te_pca)
+    np.save(os.path.join(tmp_dir, 'X_train_pca.npy'), X_tr_feats)
+    np.save(os.path.join(tmp_dir, 'X_test_pca.npy'), X_te_feats)
     np.save(os.path.join(tmp_dir, 'y_train.npy'), y_train_game)
     np.save(os.path.join(tmp_dir, 'y_test.npy'), y_test_game)
-    
-    _, acc_pca, _, _ = train_and_evaluate_knn(data_dir=tmp_dir, experiment_name='game_Try_PCA')
-    results['PCA'] = acc_pca
-    candidates_data['PCA'] = (X_tr_pca, X_te_pca)
 
-    # Candidate B: PCA + LDA
-    print("\n[Candidate B] Evaluating LDA...")
-    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-    lda_obj = LDA(n_components=2) # 3 classes - 1 = 2
-    X_tr_lda = lda_obj.fit_transform(X_tr_pca, y_train_game)
-    X_te_lda = lda_obj.transform(X_te_pca)
+    # Candidate 1: KNN
+    _, acc_knn, _, _ = train_and_evaluate_knn(data_dir=tmp_dir, experiment_name=f'game_{best_extractor}_KNN')
     
-    np.save(os.path.join(tmp_dir, 'X_train_pca.npy'), X_tr_lda)
-    np.save(os.path.join(tmp_dir, 'X_test_pca.npy'), X_te_lda)
-    
-    _, acc_lda, _, _ = train_and_evaluate_knn(data_dir=tmp_dir, experiment_name='game_Try_LDA')
-    results['LDA'] = acc_lda
-    candidates_data['LDA'] = (X_tr_lda, X_te_lda)
+    # Candidate 2: SVM
+    _, acc_svm, _ = train_and_evaluate_svm(X_tr_feats, y_train_game, X_te_feats, y_test_game)
 
-    # Candidate C: HOG + PCA
-    print("\n[Candidate C] Evaluating HOG + PCA...")
-    from skimage.feature import hog
-    # Helper to extract HOG features (requires 2D reshaping)
-    def extract_hog(data):
-        return np.array([hog(img.reshape(64, 64), orientations=9, pixels_per_cell=(8, 8), 
-                             cells_per_block=(2, 2)) for img in data])
-    
-    X_tr_hog = extract_hog(X_train_game)
-    X_te_hog = extract_hog(X_test_game)
-    
-    pca_hog = PCA(n_components=0.95)
-    X_tr_hog_pca = pca_hog.fit_transform(X_tr_hog)
-    X_te_hog_pca = pca_hog.transform(X_te_hog)
-    
-    np.save(os.path.join(tmp_dir, 'X_train_pca.npy'), X_tr_hog_pca)
-    np.save(os.path.join(tmp_dir, 'X_test_pca.npy'), X_te_hog_pca)
-    
-    _, acc_hog, _, _ = train_and_evaluate_knn(data_dir=tmp_dir, experiment_name='game_Try_HOG')
-    results['HOG'] = acc_hog
-    candidates_data['HOG'] = (X_tr_hog_pca, X_te_hog_pca)
+    best_classifier = "SVM" if acc_svm > acc_knn else "KNN"
+    final_acc = max(acc_knn, acc_svm)
 
-    # Candidate D: ISOMAP
-    print("\n[Candidate D] Evaluating ISOMAP...")
-    from sklearn.manifold import Isomap
-    
-    scaler = StandardScaler()
-    X_train_game = scaler.fit_transform(X_train_game)
-    X_test_game = scaler.transform(X_test_game)
+    print("\n" + "="*40)
+    print(" MODULE 3 FINAL PREDICTION RESULTS")
+    print("="*40)
+    print(f" Feature: {best_extractor:8s} + KNN Accuracy : {acc_knn:.4f}")
+    print(f" Feature: {best_extractor:8s} + SVM Accuracy : {acc_svm:.4f}")
+    print("="*40)
+    print(f"--> Optimal Deployment Configuration: [{best_extractor} + {best_classifier}] with {final_acc:.4f} accuracy.")
 
-    iso_obj = Isomap(n_neighbors=10, n_components=10)
-    X_tr_iso = iso_obj.fit_transform(X_train_game)
-    X_te_iso = iso_obj.transform(X_test_game)
-    
-    np.save(os.path.join(tmp_dir, 'X_train_pca.npy'), X_tr_iso)
-    np.save(os.path.join(tmp_dir, 'X_test_pca.npy'), X_te_iso)
-    
-    _, acc_iso, _, _ = train_and_evaluate_knn(data_dir=tmp_dir, experiment_name='game_Try_Isomap')
-    results['ISOMAP'] = acc_iso
-    candidates_data['ISOMAP'] = (X_tr_iso, X_te_iso)
-
-    # Step 3.3: Deploy the best performer
-    best_method = max(results, key=results.get)
-    print(f"\nResults: {results}")
-    print(f"Best performed model: {best_method} with {results[best_method]:.4f} accuracy.")
-
+    # Step 3.4: Deploy the best performer
     game_dir = './data/game_Stressed'
     os.makedirs(game_dir, exist_ok=True)
 
-    # Retrieve the winning data from our storage dictionary
-    final_X_train, final_X_test = candidates_data[best_method]
-
-    # Save final optimized data
-    np.save(os.path.join(game_dir, 'X_train_pca.npy'), final_X_train)
-    np.save(os.path.join(game_dir, 'X_test_pca.npy'), final_X_test)
+    np.save(os.path.join(game_dir, 'X_train_pca.npy'), X_tr_feats)
+    np.save(os.path.join(game_dir, 'X_test_pca.npy'), X_te_feats)
     np.save(os.path.join(game_dir, 'y_train.npy'), y_train_game)
     np.save(os.path.join(game_dir, 'y_test.npy'), y_test_game)
 
-    print(f"Final game Model ({best_method}) deployed to {game_dir}")
+    print(f"\nFinal Game Model ({best_extractor} + {best_classifier}) deployed to {game_dir}")
+
 
 # Main Execution Block
 if __name__ == "__main__":
@@ -214,10 +249,10 @@ if __name__ == "__main__":
     # Run Module 1 and get baseline for robustness
     ideal_acc = run_module_1()
     
-    # Run Module 2
-    run_module_2(ideal_acc)
+    # Run Module 2 to find the most robust feature extractor
+    best_feature_model = run_module_2(ideal_acc)
     
-    # Run Module 3
-    run_module_3()
+    # Run Module 3 with the winner for further classifier selection and prediction
+    run_module_3(best_feature_model)
     
     print("\n Pipeline execution finished.")
