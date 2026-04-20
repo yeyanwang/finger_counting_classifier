@@ -23,7 +23,8 @@ model, this system will be capable of accurately recognizing finger gestures fro
  We will utilize two primary Kaggle datasets to simulate environmental variance:
  - Dataset 1 (Ideal): [Finger Digits 0-5](https://www.kaggle.com/datasets/roshea6/finger-digits-05). This dataset consists of 12,000 thresholded images where hand gestures are isolated against black backgrounds. This will serve as the baseline for training Model 1 and establishing core feature recognition.
  - Dataset 2 (Stressed): [Counting Fingers Dataset](https://www.kaggle.com/datasets/piyushjoshi01/counting-fingers-dataset). This dataset features hand gestures captured in natural, non-processed environments. We will use this to introduce significant environmental variations such as background clutter and varying lighting.
- 
+ - Dataset 3 (Game): [Fingers Dataset](https://www.kaggle.com/datasets/koryakinp/fingers). This dataset contains hand gesture images spanning classes 0–5, and will serve as unseen data for evaluating our Rock-Paper-Scissors game simulation in Module 3.
+
 ## Preprocessing
 - Resizing: All images will be resized to a uniform 64x64 pixel across all pipelines.
 - Train/Test Split: The dataset will be split into training (70%), validation (15%), and testing (15%) sets to ensure unbiased evaluation of model performance.

@@ -5,6 +5,12 @@ model training, and evaluation for all three modules.
 
 import numpy as np
 import os
+from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.manifold import Isomap
+from sklearn.pipeline import Pipeline
+from skimage.feature import hog
+from sklearn.utils import resample
 
 # 1. Import our data pipeline
 from src.data_loader import get_data_pipeline
@@ -14,9 +20,11 @@ from src.model_pca import run_pca_experiment, save_results as save_pca_results
 from src.model_knn import train_and_evaluate_knn
 from src.model_pca_lda import run_lda_experiment
 from src.model_pca_hog import run_hog_experiment
-from src.model_isomap import model_isomap
 from src.model_umap import apply_umap
 from src.model_svm import train_and_evaluate_svm
+
+# import rps game 
+from src.rps import load_models, run_sim, plot_outcome_examples
 
 # Evaluation Imports for Automated Plots
 from src.evaluation import plot_confusion_matrix, plot_robustness_decay, plot_tradeoff
@@ -47,8 +55,6 @@ def run_module_1():
     # Step 1.2: PCA + LDA
     print("\n[Step 1.2] Running PCA + LDA Pipeline...")
     run_lda_experiment(dataset_type='ideal') # Keeps the original plots
-    from sklearn.decomposition import PCA
-    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
     pca_obj = PCA(n_components=0.95)
     X_tr_pca = pca_obj.fit_transform(X_train)
     X_te_pca = pca_obj.transform(X_test)
@@ -66,7 +72,6 @@ def run_module_1():
     # Step 1.3: HOG + PCA
     print("\n[Step 1.3] Running HOG + PCA Pipeline...")
     run_hog_experiment(dataset_type='ideal') # Keeps the original plots
-    from skimage.feature import hog
     def extract_hog(data):
         return np.array([hog(img.reshape(64, 64), orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2)) for img in data])
     X_tr_hog = extract_hog(X_train)
@@ -120,8 +125,6 @@ def run_module_2(ideal_baseline_acc):
     # Step 2.2: Stressed LDA
     print("\n[Evaluating] PCA + LDA...")
     run_lda_experiment(dataset_type='stressed') # Keep original file save
-    from sklearn.decomposition import PCA
-    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
     pca_obj = PCA(n_components=0.95)
     X_tr_pca = pca_obj.fit_transform(X_train)
     X_te_pca = pca_obj.transform(X_test)
@@ -139,7 +142,6 @@ def run_module_2(ideal_baseline_acc):
     # Step 2.3: Stressed HOG
     print("\n[Evaluating] HOG + PCA...")
     run_hog_experiment(dataset_type='stressed')
-    from skimage.feature import hog
     def extract_hog(data):
         return np.array([hog(img.reshape(64, 64), orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2)) for img in data])
     X_tr_hog = extract_hog(X_train)
@@ -155,8 +157,6 @@ def run_module_2(ideal_baseline_acc):
 
     # Step 2.4: Stressed ISOMAP
     print("\n[Evaluating] ISOMAP...")
-    from sklearn.manifold import Isomap
-    from sklearn.pipeline import Pipeline
     # n_components=0.95 prevents crashes on small datasets
     iso_pipeline = Pipeline([
         ('pca', PCA(n_components=0.95, random_state=42)),
@@ -191,18 +191,17 @@ def run_module_2(ideal_baseline_acc):
     print("\n MODULE 2 COMPLETE.")
     return best_extractor
 
-
 def run_module_3(best_extractor):
     """
     Module 3: Rock-Paper-Scissors (Strategic Application)
     Takes the best feature extractor from Module 2, applies it to the game subset,
     and performs further selection between Classifiers (KNN vs SVM) for final prediction.
+    Then runs RPS game sim...
     """
     print(f"\nSTARTING MODULE 3: ROCK-PAPER-SCISSORS (Deploying {best_extractor})")
 
     # Step 3.1: Data Acquisition & Filtering
-    X_train, _, X_test, y_train, _, y_test = get_data_pipeline('stressed')
-
+    X_train, _, X_test, y_train, _, y_test = get_data_pipeline('rps')
     game_labels = [0, 2, 5]
     mask_train = np.isin(y_train, game_labels)
     mask_test = np.isin(y_test, game_labels)
@@ -214,13 +213,22 @@ def run_module_3(best_extractor):
     
     print(f"Game Subset created with {len(X_train_game)} samples.")
 
+    MAX_PER_CLASS = 300
+    X_tr_down, y_tr_down = [], []
+    for cls in [0, 2, 5]:
+        mask  = y_train_game == cls
+        X_cls = X_train_game[mask]
+        y_cls = y_train_game[mask]
+        n = min(MAX_PER_CLASS, len(X_cls))
+        X_s, y_s = resample(X_cls, y_cls, n_samples=n, random_state=42, replace=False)
+        X_tr_down.append(X_s)
+        y_tr_down.append(y_s)
+    X_train_game = np.vstack(X_tr_down)
+    y_train_game = np.concatenate(y_tr_down)
+    print(f"Downsampled training set: {X_train_game.shape}")
+
     # Step 3.2: Extract Features using the Winner from Module 2
     print(f"\n[Step 3.1] Transforming data using {best_extractor}...")
-    from sklearn.decomposition import PCA
-    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-    from sklearn.manifold import Isomap
-    from sklearn.pipeline import Pipeline
-    from skimage.feature import hog
 
     if best_extractor == 'PCA':
         pca_obj = PCA(n_components=0.95)
@@ -258,8 +266,10 @@ def run_module_3(best_extractor):
     np.save(os.path.join(tmp_dir, 'y_train.npy'), y_train_game)
     np.save(os.path.join(tmp_dir, 'y_test.npy'), y_test_game)
 
+    experiment_name = f'game_{best_extractor}_KNN'
+
     # Candidate 1: KNN
-    _, acc_knn, _, _ = train_and_evaluate_knn(data_dir=tmp_dir, experiment_name=f'game_{best_extractor}_KNN')
+    _, acc_knn, _, _ = train_and_evaluate_knn(data_dir=tmp_dir, experiment_name=experiment_name)
     
     # Candidate 2: SVM
     _, acc_svm, _ = train_and_evaluate_svm(X_tr_feats, y_train_game, X_te_feats, y_test_game)
@@ -275,6 +285,13 @@ def run_module_3(best_extractor):
     print("="*40)
     print(f"--> Optimal Deployment Configuration: [{best_extractor} + {best_classifier}] with {final_acc:.4f} accuracy.")
 
+    # trade-off plot comparing KNN vs SVM on the best extractor
+    models_data = {
+        f'{best_extractor} + KNN': {'dim': X_tr_feats.shape[1], 'acc': acc_knn},
+        f'{best_extractor} + SVM': {'dim': X_tr_feats.shape[1], 'acc': acc_svm},
+    }
+    plot_tradeoff(models_data)
+
     # Step 3.4: Deploy the best performer
     game_dir = './data/game_Stressed'
     os.makedirs(game_dir, exist_ok=True)
@@ -286,6 +303,15 @@ def run_module_3(best_extractor):
 
     print(f"\nFinal Game Model ({best_extractor} + {best_classifier}) deployed to {game_dir}")
 
+    # Step 3.5: Run RPS game sim
+    print(f"\nRunning RPS Game Simulation...")
+    try:
+        X_test_rps, y_test_rps, knn_model = load_models(path=tmp_dir, model_name=experiment_name)
+        sim_results = run_sim(X_test_rps, y_test_rps, knn_model, rounds=10, show_images=False)
+        print(f"\n--> Game Summary: Wins={sim_results['wins']}, Losses={sim_results['losses']}, Ties={sim_results['ties']}, Accuracy={sim_results['accuracy']:.4f}")
+        plot_outcome_examples(X_test_rps, y_test_rps, knn_model, save_dir='./results')
+    except FileNotFoundError as e:
+        print(f"Unable to load model for simulation: {e}")
 
 # Main Execution Block
 if __name__ == "__main__":
