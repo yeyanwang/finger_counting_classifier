@@ -26,25 +26,39 @@ This project aims to bridge this gap by building a robust finger counting model.
 ---
 
 ## 3. Data Source & Preprocessing
+
 ### 3.1 Data Source
 * **Dataset 1 (Ideal):** Finger Digits 0-5. 12,000 thresholded images with isolated hand gestures against black backgrounds.
 * **Dataset 2 (Stressed):** Counting Fingers Dataset. Gestures captured in natural environments with significant background clutter and inconsistent lighting.
 
-### 3.2 Preprocessing
-As executed by our data pipeline script, all datasets undergo a strict, automated preparation process before feature extraction:
+### 3.2 Preprocessing and Standardization
+To ensure mathematical stability and prevent bias, the preprocessing and standardization steps are excecuted before model processing.
 * **Resizing & Flattening:** All images are uniformly reshaped to 64x64 pixels and flattened into 4096-dimensional vectors for linear processing.
-* **Normalization:** Standardized pixel-level scaling is applied to ensure mathematical stability across all features.
-* **Class Balancing:** The training set undergoes automated class balancing to prevent bias toward overrepresented hand gestures.
-* **Targeted Downsampling (Game Subset):** Specifically for the interactive game deployment, the filtered classes (0, 2, and 5) are downsampled to a maximum of 300 samples per class (`MAX_PER_CLASS = 300`) to ensure a perfectly balanced strategic simulation.
+* **Normalization:** Pixel-level Z-score standardization is applied to ensure scale uniformity across all features.
+* **Class Balancing:** The training set undergoes automated class augmentation to ensure an equal sample distribution, preventing downstream classifiers from biasing toward majority gestures.
+* **Environmental Mitigation (Dataset 2 Only):** For the Stressed dataset, Gaussian smoothing is applied to reduce high-frequency noise, followed by Contrast Limited Adaptive Histogram Equalization (CLAHE) to mitigate uneven lighting.
 
 ---
 
 ## 4. Methodology
-The execution of this project is orchestrated through a progressive, three-module Python pipeline:
+The project is structured into three progressive modules to evaluate and enhance model performance. 
 
-1. **Module 1: Ideal Baseline:** Evaluates foundational feature extractors (PCA, PCA+LDA, and HOG+PCA) on the isolated gesture dataset. Each model is trained using a K-NN classifier and optimized via 5-Fold Cross-Validation to establish an accuracy ceiling.
-2. **Module 2: Robustness Tournament:** Transitions to the complex "Stressed" dataset. It automatically evaluates both linear (PCA, LDA, HOG) and non-linear (ISOMAP, UMAP) dimensionality reduction techniques. The algorithm actively calculates robustness decay and crowns the "Most Robust Feature Extractor" based on the highest stressed accuracy.
-3. **Module 3: Strategic Deployment (RPS Game):** Takes the winning feature extractor from the tournament and applies it to the Rock-Paper-Scissors data subset. It performs a final, dynamic classifier selection by comparing K-NN and SVM capabilities. The optimal configuration is then deployed into a simulated 10-round RPS game to evaluate real-time interactive performance.
+### 4.1 Module 1: Foundational Modeling (`run_module_1()`)
+This module establishes a baseline performance ceiling by evaluating foundational feature extractors on the noise-free, Ideal dataset. 
+* We deploy global linear projections (**PCA**), supervised linear projections (**PCA+LDA**), and local gradient descriptors (**HOG+PCA**). 
+* Each model is trained using a K-Nearest Neighbors (K-NN) classifier optimized via 5-Fold Cross-Validation. 
+* *Note: Non-linear manifold learning models are intentionally excluded in this phase to prevent overfitting on clean data.*
+
+### 4.2 Module 2: Robustness Evaluation (`run_module_2()`)
+This core phase acts as a "Robustness Tournament" by transitioning models to the Stressed dataset to evaluate resilience against environmental noise.
+* **Algorithm Showdown:** We evaluate all linear extractors against non-linear manifold learning techniques (**ISOMAP** and **UMAP**). UMAP is specifically included to test its ability to preserve local topology with higher computational stability than ISOMAP.
+* **Robustness Decay Quantification:** The automated evaluation module calculates the "Robustness Decay"—the percentage drop in accuracy between the Ideal and Stressed datasets—to dynamically identify the most resilient feature extraction method.
+
+### 4.3 Module 3: Rock-Paper-Scissors Application (`run_module_3()`)
+We translate our experimental findings into a strategic deployment.
+* **Data Subsetting & Downsampling:** The dataset is filtered to include only Rock (0), Scissors (2), and Paper (5). To ensure a perfectly balanced simulation, these classes are strictly downsampled to a maximum of 300 samples per class (`MAX_PER_CLASS = 300`).
+* **Classifier Showdown:** Inheriting the winning feature extractor from Module 2, we initiate a final comparison between **K-NN** and a Support Vector Machine (**SVM**) using an RBF kernel. 
+* **Trade-off Analysis:** The final deployment decision is based on an automated Trade-off Plot, charting computational efficiency (feature dimensions) against model accuracy. The optimal pipeline is then deployed into a simulated 10-round RPS game to evaluate real-time interactive performance.
 
 ---
 
@@ -62,7 +76,14 @@ The execution of this project is orchestrated through a progressive, three-modul
 **Objective:**
 The focus of Module 2 is the "Robustness Tournament." We evaluated how environmental complexity affects classification performance by measuring "Robustness Decay"—the percentage drop in accuracy when moving from the ideal dataset to the stressed dataset.
 
-**Experimental Performance (Stressed Dataset):**
+<p align="center">
+  <img src="./results/pca_variance_stressed.png" alt="PCA Variance - Stressed"><br>
+  <em>Figure: PCA Explained Variance for the Stressed Dataset</em>
+</p>
+
+<div align="center">
+  
+**Model Performance Result (Stressed Dataset):**
 *Training Samples: 78 | Test Samples: 17*
 
 | Feature Extractor | Stressed Accuracy | Ideal Accuracy | Robustness Decay |
@@ -73,16 +94,27 @@ The focus of Module 2 is the "Robustness Tournament." We evaluated how environme
 | ISOMAP | 0.7647 | 1.0000 | 23.53% |
 | UMAP | 0.5882 | 1.0000 | 41.18% |
 
+</div>
+
 **Discussion of Robustness Analysis:**
 * **Linear vs. Non-linear Resilience:** Surprisingly, non-linear manifold learning (**ISOMAP**) performed identically to linear **PCA** (0.7647). **UMAP** suffered the highest decay (41.18%), suggesting that for low-sample noisy environments, complex non-linear projections may overfit background noise.
-* **Structural Descriptors:** The **HOG + PCA** pipeline demonstrated high resilience (0.8824). Gradient-based structural descriptors effectively isolated gesture geometry from pixel-level background fluctuations.
-* **Supervised Feature Extraction:** **LDA** tied for the highest accuracy. By maximizing inter-class separability, LDA successfully filtered out environmental stress that unsupervised methods (PCA) failed to ignore.
+* **Structural Descriptors:** The **HOG + PCA** pipeline demonstrated high accuracy performance (0.8824). Gradient-based structural descriptors effectively isolated gesture geometry from pixel-level background fluctuations.
+* **Supervised Feature Extraction:** **LDA** tied for the highest accuracy (same performance with HOG + PCA). By maximizing inter-class separability, LDA successfully filtered out environmental stress that unsupervised methods (PCA) failed to ignore.
 
-**Conclusion:** **LDA** was selected as the most robust feature extractor for the interactive application in Module 3.
+<p align="center">
+  <img src="./results/robustness_decay_pca_+_knn.png" alt="Robustness Decay Chart"><br>
+  <em>Figure: Robustness Decay Comparison</em>
+</p>
 
-![PCA Variance - Stressed](./results/pca_variance_stressed.png)
-![Robustness Decay Chart](./results/robustness_decay_pca_+_knn.png)
-![Confusion Matrix - Stressed PCA](./results/confusion_matrix_stressed_pca.png)
+**Conclusion for Model Selection:**
+Although both LDA and HOG+PCA achieved identical accuracy (0.8824) and robustness decay (11.76%), **LDA** was selected as the final robust feature extractor for the interactive application in Module 3 due to its superior computational efficiency:
+1. **Dimensionality:** LDA successfully compressed the data into just **5 dimensions** (n_classes - 1), whereas the HOG+PCA pipeline required **60 dimensions** to achieve the same result, which shows a much lower computational cost.
+2. **Inference Latency:** For the real-time Rock-Paper-Scissors game, LDA requires only computationally lightweight matrix multiplications during inference, unlike HOG which requires expensive gradient calculations across the image. 
+
+<p align="center">
+  <img src="./results/confusion_matrix_stressed_pca.png" alt="Confusion Matrix - Stressed PCA"><br>
+  <em>Figure: Confusion Matrix for Stressed Dataset</em>
+</p>
 
 ### 5.3 Module 3: Rock-Paper-Scissors (Strategic Application)
 
