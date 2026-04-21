@@ -30,6 +30,7 @@ This project aims to bridge this gap by building a robust finger counting model.
 ### 3.1 Data Source
 * **Dataset 1 (Ideal):** Finger Digits 0-5. 12,000 thresholded images with isolated hand gestures against black backgrounds.
 * **Dataset 2 (Stressed):** Counting Fingers Dataset. Gestures captured in natural environments with significant background clutter and inconsistent lighting.
+* **Dataset 3 (Game):** [Fingers Dataset](https://www.kaggle.com/datasets/koryakinp/fingers). This dataset contains hand gesture images spanning classes 0–5, and will serve as unseen data for evaluating our Rock-Paper-Scissors game simulation in Module 3.
 
 ### 3.2 Preprocessing and Standardization
 To ensure mathematical stability and prevent bias, the preprocessing and standardization steps are excecuted before model processing.
