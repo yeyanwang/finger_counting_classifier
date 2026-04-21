@@ -5,12 +5,20 @@ import kagglehub
 from sklearn.model_selection import train_test_split
 from collections import Counter
 from src import preprocessing
+import re
+
+_cached_paths = None # cache so kaggle doesn't re-download every module
 
 def download_datasets():
     """Download datasets from kaggle"""
+    global _cached_paths
+    if _cached_paths is not None:
+        return _cached_paths
     path_ideal = kagglehub.dataset_download("roshea6/finger-digits-05")
-    path_stressed = kagglehub.dataset_download("piyushjoshi01/counting-fingers-dataset")  
-    return path_ideal, path_stressed 
+    path_stressed = kagglehub.dataset_download("piyushjoshi01/counting-fingers-dataset")
+    path_rps = kagglehub.dataset_download("koryakinp/fingers") 
+    _cached_paths = (path_ideal, path_stressed, path_rps)
+    return _cached_paths
 
 def load_and_preprocess_data(data_path, dataset_type='ideal'):
     """Load data from the kaggle path, and extract labels"""
@@ -57,6 +65,22 @@ def load_and_preprocess_data(data_path, dataset_type='ideal'):
                             # Apply Gaussian Blur before CLAHE to reduce high-frequency noise
                             img = preprocessing.apply_gaussian_blur(img)
                             
+                            img = preprocessing.apply_clahe(img)
+                            X.append(img)
+                            y.append(label)
+        
+    elif dataset_type == 'rps':
+        for root, _, files in os.walk(data_path):
+            for file in files:
+                if file.lower().endswith('.png'):
+                    match = re.search(r'([0-5])[LR]\.png$', file, re.IGNORECASE)
+                    if match:
+                        label = int(match.group(1))
+                        img_path = os.path.join(root, file)
+                        img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+                        if img is not None:
+                            img = preprocessing.resize_image(img)
+                            img = preprocessing.apply_gaussian_blur(img)
                             img = preprocessing.apply_clahe(img)
                             X.append(img)
                             y.append(label)
@@ -114,9 +138,15 @@ def get_data_pipeline(dataset_type='ideal'):
     Main assembly line: Download -> Split -> Balance -> Normalize & Flatten
     """
     # Get data path
-    path_ideal, path_stressed = download_datasets()
-    data_path = path_ideal if dataset_type == 'ideal' else path_stressed
-        
+    path_ideal, path_stressed, path_rps = download_datasets()
+
+    if dataset_type == 'rps':
+        data_path = path_rps
+    elif dataset_type == 'ideal':
+        data_path = path_ideal
+    else:
+        data_path = path_stressed
+
     print(f"Loading {dataset_type} dataset...")
     X, y = load_and_preprocess_data(data_path, dataset_type)
     
