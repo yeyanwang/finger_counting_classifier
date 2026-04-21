@@ -24,10 +24,10 @@ from src.model_umap import apply_umap
 from src.model_svm import train_and_evaluate_svm
 
 # import rps game 
-from src.rps import load_models, run_sim, plot_outcome_examples
+from src.rps import run_sim, plot_outcome_examples
 
 # Evaluation Imports for Automated Plots
-from src.evaluation import plot_confusion_matrix, plot_robustness_decay, plot_tradeoff
+from src.evaluation import plot_confusion_matrix, plot_robustness_decay, plot_tradeoff, plot_classifier_comparison
 
 
 def run_module_1():
@@ -38,7 +38,7 @@ def run_module_1():
     
     # Get ideal dataset to evaluate LDA and HOG identically to PCA
     X_train, _, X_test, y_train, _, y_test = get_data_pipeline('ideal')
-    tmp_dir = './data/Ideal_Temp'
+    tmp_dir = os.path.normpath('./data/Ideal_Temp')
     os.makedirs(tmp_dir, exist_ok=True)
     results = {}
     
@@ -48,7 +48,7 @@ def run_module_1():
     save_pca_results(pca_data, pca_labels, pca_model, dataset_type='ideal')
     
     # Updated to capture acc for robustness comparison in Module 2
-    _, ideal_pca_acc, y_t, y_p = train_and_evaluate_knn(data_dir='./data/Ideal', experiment_name='Ideal_PCA')
+    _, ideal_pca_acc, y_t, y_p = train_and_evaluate_knn(data_dir=os.path.normpath('./data/Ideal'), experiment_name='Ideal_PCA')
     plot_confusion_matrix(y_t, y_p, 'Ideal_PCA')
     results['PCA'] = ideal_pca_acc
 
@@ -108,7 +108,7 @@ def run_module_2(ideal_baseline_acc):
     # Get full stressed dataset
     X_train, _, X_test, y_train, _, y_test = get_data_pipeline('stressed')
     
-    tmp_dir = './data/Stressed_Temp'
+    tmp_dir = os.path.normpath('./data/Stressed_Temp')
     os.makedirs(tmp_dir, exist_ok=True)
     results = {}
 
@@ -116,7 +116,7 @@ def run_module_2(ideal_baseline_acc):
     print("\n[Evaluating] Standard PCA...")
     pca_data, labels, pca_model = run_pca_experiment(dataset_type='stressed')
     save_pca_results(pca_data, labels, pca_model, dataset_type='stressed')
-    _, acc_pca, y_t, y_p = train_and_evaluate_knn(data_dir='./data/Stressed', experiment_name='Stressed_PCA', feature_suffix='pca')
+    _, acc_pca, y_t, y_p = train_and_evaluate_knn(data_dir=os.path.normpath('./data/Stressed'), experiment_name='Stressed_PCA', feature_suffix='pca')
     
     plot_robustness_decay(ideal_acc=ideal_baseline_acc, stressed_acc=acc_pca, model_name="PCA + KNN")
     plot_confusion_matrix(y_t, y_p, 'Stressed_PCA')
@@ -213,7 +213,7 @@ def run_module_3(best_extractor):
     
     print(f"Game Subset created with {len(X_train_game)} samples.")
 
-    MAX_PER_CLASS = 300
+    MAX_PER_CLASS = 500
     X_tr_down, y_tr_down = [], []
     for cls in [0, 2, 5]:
         mask  = y_train_game == cls
@@ -259,7 +259,7 @@ def run_module_3(best_extractor):
 
     # Step 3.3: Further Classifier Selection (KNN vs SVM)
     print("\n[Step 3.2] Classifier Selection: KNN vs SVM...")
-    tmp_dir = './data/game_Temp'
+    tmp_dir = os.path.normpath('./data/game_Temp')
     os.makedirs(tmp_dir, exist_ok=True)
     np.save(os.path.join(tmp_dir, 'X_train_pca.npy'), X_tr_feats)
     np.save(os.path.join(tmp_dir, 'X_test_pca.npy'), X_te_feats)
@@ -269,10 +269,10 @@ def run_module_3(best_extractor):
     experiment_name = f'game_{best_extractor}_KNN'
 
     # Candidate 1: KNN
-    _, acc_knn, _, _ = train_and_evaluate_knn(data_dir=tmp_dir, experiment_name=experiment_name)
+    knn_model, acc_knn, _, _ = train_and_evaluate_knn(data_dir=tmp_dir, experiment_name=experiment_name)
     
     # Candidate 2: SVM
-    _, acc_svm, _ = train_and_evaluate_svm(X_tr_feats, y_train_game, X_te_feats, y_test_game)
+    svm_model, acc_svm, _ = train_and_evaluate_svm(X_tr_feats, y_train_game, X_te_feats, y_test_game)
 
     best_classifier = "SVM" if acc_svm > acc_knn else "KNN"
     final_acc = max(acc_knn, acc_svm)
@@ -286,14 +286,10 @@ def run_module_3(best_extractor):
     print(f"--> Optimal Deployment Configuration: [{best_extractor} + {best_classifier}] with {final_acc:.4f} accuracy.")
 
     # trade-off plot comparing KNN vs SVM on the best extractor
-    models_data = {
-        f'{best_extractor} + KNN': {'dim': X_tr_feats.shape[1], 'acc': acc_knn},
-        f'{best_extractor} + SVM': {'dim': X_tr_feats.shape[1], 'acc': acc_svm},
-    }
-    plot_tradeoff(models_data)
+    plot_classifier_comparison(best_extractor, acc_knn, acc_svm, save_dir='./results')
 
     # Step 3.4: Deploy the best performer
-    game_dir = './data/game_Stressed'
+    game_dir = os.path.normpath('./data/game_Stressed')
     os.makedirs(game_dir, exist_ok=True)
 
     np.save(os.path.join(game_dir, 'X_train_pca.npy'), X_tr_feats)
@@ -306,11 +302,13 @@ def run_module_3(best_extractor):
     # Step 3.5: Run RPS game sim
     print(f"\nRunning RPS Game Simulation...")
     try:
-        X_test_rps, y_test_rps, knn_model = load_models(path=tmp_dir, model_name=experiment_name)
-        sim_results = run_sim(X_test_rps, y_test_rps, knn_model, rounds=10, show_images=False)
+        final_model = knn_model if best_classifier == "KNN" else svm_model
+        X_test_rps, y_test_rps = X_te_feats, y_test_game
+
+        sim_results = run_sim(X_test_rps, y_test_rps, final_model, rounds=10, show_images=False)
         print(f"\n--> Game Summary: Wins={sim_results['wins']}, Losses={sim_results['losses']}, Ties={sim_results['ties']}, Accuracy={sim_results['accuracy']:.4f}")
-        plot_outcome_examples(X_test_rps, y_test_rps, knn_model, save_dir='./results')
-    except FileNotFoundError as e:
+        plot_outcome_examples(X_test_rps, y_test_rps, final_model, save_dir='./results', X_pixels=X_test_game)
+    except Exception as e:
         print(f"Unable to load model for simulation: {e}")
 
 # Main Execution Block

@@ -39,7 +39,8 @@ def run_hog_experiment(dataset_type='stressed'):
 
 
     folder_name = f"HOG_{dataset_type.capitalize()}"
-    save_dir = f'./data/{folder_name}'
+    # save_dir = f'./data/{folder_name}'
+    save_dir = os.path.normpath(f'./data/{folder_name}')  
     os.makedirs(save_dir, exist_ok=True)
 
     np.save(os.path.join(save_dir, 'X_train_pca.npy'), X_train_hog_pca)

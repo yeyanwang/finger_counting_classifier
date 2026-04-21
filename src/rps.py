@@ -103,13 +103,15 @@ def run_sim(X_test, y_test, model, rounds=5, show_images=False):
         "ties": ties
     }
 
-# display game outcomes for final report...
-def plot_outcome_examples(X_test, y_test, model, save_dir='./results'):
+def plot_outcome_examples(X_test, y_test, model, save_dir='./results', X_pixels=None):
     """
     Finds one Win, one Lose, one Tie example from the test set
     and displays them side by side with the game result.
     """
     X_test, y_test = filter_rps(X_test, y_test)
+    
+    if X_pixels is not None:
+        X_pixels = X_pixels[:len(X_test)]
 
     outcomes_needed = {"Win": None, "Lose": None, "Tie": None}
     indices = np.random.permutation(len(X_test))
@@ -125,8 +127,9 @@ def plot_outcome_examples(X_test, y_test, model, save_dir='./results'):
         result = determine_winner(pred_label, computer)
 
         if outcomes_needed[result] is None:
+            display_img = X_pixels[idx] if X_pixels is not None else X_test[idx]
             outcomes_needed[result] = {
-                'img': X_test[idx],
+                'img': display_img,
                 'true': true_label,
                 'pred': pred_label,
                 'computer': computer,
@@ -145,11 +148,7 @@ def plot_outcome_examples(X_test, y_test, model, save_dir='./results'):
             ax.axis('off')
             continue
 
-        try:
-            img = data['img'].reshape(64, 64)
-        except ValueError:
-            side = int(len(data['img']) ** 0.5)
-            img  = data['img'].reshape(side, side)
+        img = data['img'].reshape(64, 64)
 
         ax.imshow(img, cmap='gray')
         ax.set_title(
@@ -164,7 +163,8 @@ def plot_outcome_examples(X_test, y_test, model, save_dir='./results'):
 
     plt.tight_layout()
 
-    # save the figure
+    os.makedirs(save_dir, exist_ok=True)
     save_path = os.path.join(save_dir, 'rps_outcomes.png')
     plt.savefig(save_path, bbox_inches='tight')
-    plt.show()
+    plt.close()
+    print(f"RPS Outcome Plot saved to {save_path}")

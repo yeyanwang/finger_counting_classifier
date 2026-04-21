@@ -61,7 +61,7 @@ def plot_robustness_decay(ideal_acc, stressed_acc, model_name="PCA + K-NN"):
     plt.close()
     print(f"Robustness Decay Plot saved to {save_path}")
 
-# 3. Efficiency vs. Accuracy Trade-off Plot (For Module 2 & 3)
+# 3. Efficiency vs. Accuracy Trade-off Plot (For Module 2)
 def plot_tradeoff(models_data):
     """
     Generates a scatter plot comparing accuracy against dimensionality
@@ -88,3 +88,24 @@ def plot_tradeoff(models_data):
     plt.savefig(save_path, bbox_inches='tight')
     plt.close()
     print(f"Trade-off Plot saved to {save_path}")
+
+# direct bar chart comparison for Module 3
+def plot_classifier_comparison(best_extractor, acc_knn, acc_svm, save_dir='./results'):
+    """
+    Bar chart comparing KNN vs SVM accuracy for the best feature extractor in Module 3.
+    """
+    fig, ax = plt.subplots(figsize=(6, 4))
+    classifiers = ['KNN', 'SVM']
+    accs = [acc_knn, acc_svm]
+    bars = ax.bar(classifiers, accs, color=['#1f77b4', '#ff7f0e'], edgecolor='black')
+    ax.set_ylim(min(accs) - 0.05, 1.02)
+    ax.set_title(f'Classifier Comparison: {best_extractor} + KNN vs SVM')
+    ax.set_ylabel('Test Accuracy')
+    for bar, acc in zip(bars, accs):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.005, f'{acc:.4f}', ha='center')
+    plt.tight_layout()
+    save_path = os.path.join(save_dir, 'rps_classifier_accuracy_comparison.png')
+    plt.savefig(save_path, bbox_inches='tight')
+    plt.close()
+    print(f"Classifier Comparison Plot saved to {save_path}")
+
