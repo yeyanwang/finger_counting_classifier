@@ -1,6 +1,6 @@
 # Final Report: Finger Counting Imaging Classification
 
-**Team Members:** Sichao Qiu, Yuexin Wang, Yeyan Wang
+**Team Members:** Sichao Qiu, Yuexin Wang, Yeyan Wang <br/>
 **Course:** ISYE 6740 - Computational Data Analysis (Spring 2026)
 
 ---
@@ -28,8 +28,8 @@ This project aims to bridge this gap by building a robust finger counting model.
 ## 3. Data Source & Preprocessing
 
 ### 3.1 Data Source
-* **Dataset 1 (Ideal):** Finger Digits 0-5. 12,000 thresholded images with isolated hand gestures against black backgrounds.
-* **Dataset 2 (Stressed):** Counting Fingers Dataset. Gestures captured in natural environments with significant background clutter and inconsistent lighting.
+* **Dataset 1 (Ideal):** [Finger Digits 0-5](https://www.kaggle.com/datasets/roshea6/finger-digits-05). 12,000 thresholded images with isolated hand gestures against black backgrounds.
+* **Dataset 2 (Stressed):** [Counting Fingers Dataset](https://www.kaggle.com/datasets/piyushjoshi01/counting-fingers-dataset). Gestures captured in natural environments with significant background clutter and inconsistent lighting.
 * **Dataset 3 (Game):** [Fingers Dataset](https://www.kaggle.com/datasets/koryakinp/fingers). This dataset contains hand gesture images spanning classes 0–5, and will serve as unseen data for evaluating our Rock-Paper-Scissors game simulation in Module 3.
 
 ### 3.2 Preprocessing and Standardization
@@ -57,7 +57,7 @@ This core phase acts as a "Robustness Tournament" by transitioning models to the
 
 ### 4.3 Module 3: Rock-Paper-Scissors Application (`run_module_3()`)
 We translate our experimental findings into a strategic deployment.
-* **Data Subsetting & Downsampling:** The dataset is filtered to include only Rock (0), Scissors (2), and Paper (5). To ensure a perfectly balanced simulation, these classes are strictly downsampled to a maximum of 300 samples per class (`MAX_PER_CLASS = 300`).
+* **Data Subsetting & Downsampling:** The dataset is filtered to include only Rock (0), Scissors (2), and Paper (5). To ensure a perfectly balanced simulation, these classes are strictly downsampled to a maximum of 500 samples per class (`MAX_PER_CLASS = 500`).
 * **Classifier Showdown:** Inheriting the winning feature extractor from Module 2, we initiate a final comparison between **K-NN** and a Support Vector Machine (**SVM**) using an RBF kernel. 
 * **Trade-off Analysis:** The final deployment decision is based on an automated Trade-off Plot, charting computational efficiency (feature dimensions) against model accuracy. The optimal pipeline is then deployed into a simulated 10-round RPS game to evaluate real-time interactive performance.
 
@@ -122,8 +122,8 @@ Although both LDA and HOG+PCA achieved identical accuracy (0.8824) and robustnes
 
 
 ![KNN Tuning - Game LDA KNN](./results/knn_tuning_game_lda_knn.png)
-![Accuracy-Efficiency Trade-off](./results/tradeoff_efficiency_vs_accuracy.png)
-
+![RPS Classifier Accuracy Comparison: KNN vs SVM](./results/rps_classifier_accuracy_comparison.png)
+![RPS Game Outcome Examples (Win / Lose / Tie)](./results/rps_outcomes.png)
 
 ---
 
