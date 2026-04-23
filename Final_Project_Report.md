@@ -9,11 +9,11 @@
 In computer vision, image classifiers often achieve high accuracy under controlled conditions- such as monochrome backgrounds and uniform lighting. However, their performance degrades in real-world scenarios characterized by cluttered backgrounds, varying illumination, also when the finger gestures have some obstructions or taking from complex angles. 
 
 This project aims to bridge this gap by building a robust finger counting model. By progressing from a baseline model, this system will be capable of accurately recognizing finger gestures from 0 to 5 while accounting for:
-1. **Environmental Noise:** Cluttered backgrounds and inconsistent lighting.
-2. **Perspective Variance:** Gestures captured from various angles.
-3. **Individual Diversity:** Variations in hand shapes and sizes across different users.
-4. **Interactive Application:** Integration of the finger-count model into real-time environments, such as Rock-Paper-Scissors game, to evaluate robustness, usability, and reliability under dynamic, real-world conditions. 
-
+- **Environmental Noise:** Cluttered backgrounds and inconsistent lighting.
+- **Perspective Variance:** Gestures captured from various angles.
+- **Individual Diversity:** Variations in hand shapes and sizes across different users.
+- **Interactive Application:** Integration of the finger-count model into real-time environments, such as Rock-Paper-Scissors game, to evaluate robustness, usability, and reliability under dynamic, real-world conditions. 
+Although there are some 
 ---
 
 ## 2. Research Questions
