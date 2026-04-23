@@ -59,8 +59,7 @@ This core phase acts as a "Robustness Tournament" by transitioning models to the
 We translate our experimental findings into a strategic deployment.
 * **Data Subsetting & Downsampling:** The dataset is filtered to include only Rock (0), Scissors (2), and Paper (5). To ensure a perfectly balanced simulation, these classes are strictly downsampled to a maximum of 500 samples per class (`MAX_PER_CLASS = 500`).
 * **Classifier Showdown:** Inheriting the winning feature extractor from Module 2, we initiate a final comparison between **K-NN** and a Support Vector Machine (**SVM**) using an RBF kernel. 
-* **Trade-off Analysis:** The final deployment decision is based on an automated Trade-off Plot, charting computational efficiency (feature dimensions) against model accuracy. The optimal pipeline is then deployed into a simulated 10-round RPS game to evaluate real-time interactive performance.
-
+* **Game Simulation:** The winning classifier is deployed into a 10-round RPS simulation. Game outcomes (Win/Lose/Tie) are determined by comparing the model's predicted gesture against a randomly sampled computer move, with representative outcome examples visualized for analysis.
 ---
 
 ## 5. Result and Analysis
@@ -118,17 +117,38 @@ Although both LDA and HOG+PCA achieved identical accuracy (0.8824) and robustnes
 </p>
 
 ### 5.3 Module 3: Rock-Paper-Scissors (Strategic Application)
+**Objective:**
+With LDA selected as the feature extraction method, this module compares KNN and SVM to determine which works better for the three-class Rock-Paper-Scissors (RPS) subset. The best model is then used in a live 10-round simulation.
 
+**Classifier Comparison:**
+Both KNN and SVM achieved very high accuracy on the RPS subset, with SVM slightly outperforming KNN (0.9997 vs. 0.9994), as shown in the classifier comparison bar chart below. While the difference is small, SVM was chosen because it can create more flexible decision boundaries in the reduced 5-dimensional LDA space, where the classes are tightly clustered. Based on this, SVM was selected as the final model for deployment.
+<p align="center">
+  <img src="./results/rps_classifier_accuracy_comparison.png" alt="RPS Classifier Accuracy Comparison: KNN vs SVM"><br>
+  <em>Figure: RPS Classifier Accuracy Comparison: KNN vs SVM</em>
+</p>
 
-
-![KNN Tuning - Game LDA KNN](./results/knn_tuning_game_lda_knn.png)
-![RPS Classifier Accuracy Comparison: KNN vs SVM](./results/rps_classifier_accuracy_comparison.png)
-![RPS Game Outcome Examples (Win / Lose / Tie)](./results/rps_outcomes.png)
+**Game Simulation Results:**
+The deployed model was evaluated across a 10-round Rock-Paper-Scissors game simulation against a randomly sampling computer opponent. The outcome examples below shows one representative Win, Lose, and Tie scenario, confirming that the model correctly identifies gesture classes even under the compressed LDA feature representation. 
+<p align="center">
+  <img src="./results/rps_outcomes.png" alt="RPS Game Outcome Examples (Win / Lose / Tie)"><br>
+  <em>Figure: RPS Game Outcome Examples (Win / Lose / Tie)</em>
+</p>
 
 ---
 
 ## 6. Conclusion
+This project developed a three-module pipeline for robust finger-counting gesture classification, progressively evaluating feature extraction strategies from ideal to stressed conditions and deploying the optimal model into a real-time Rock-Paper-Scissors application.
 
+**Key Findings:**
+* **Ideal conditions can be misleading:** In Module 1, all feature extractors performed almost perfectly on clean data, but their performance dropped differently under stressed conditions. This shows that evaluating only on ideal data overestimates how well models perform in real-world settings.
+* **Supervised methods are more robust under stress:** LDA performed better than unsupervised methods because it focuses on separating classes. It had the lowest drop in performance (11.76%), while methods like PCA, ISOMAP, and especially UMAP degraded much more (UMAP dropped over 40%).
+* **Non-linear methods didn’t help as expected:** ISOMAP performed about the same as PCA, and UMAP performed the worst under stress. This suggests that for smaller and noisier datasets, more complex non-linear methods may overfit to noise instead of learning meaningful gesture patterns.
+* **LDA is the best choice for deployment:** LDA reduced the data to just 5 dimensions while still keeping 88.24% accuracy under stressed conditions. It’s also efficient, making it a good fit for real-time applications.
+* **The RPS simulation shows the model works in practice:** The final LDA-based pipeline correctly classified gestures in the RPS game. Any wins or losses were due to the randomness of the opponent, not model errors, which shows the system is reliable.
+
+**Limitations and Future Work:** 
+* The stressed dataset is small, so results may not be fully reliable. Future work should include a larger dataset to better validate performance.
+* Testing the model in a real-time webcam setting would provide a better understanding of LDA’s speed and practicality compared to methods like HOG.
 
 ---
 
