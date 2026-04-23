@@ -65,11 +65,23 @@ We translate our experimental findings into a strategic deployment.
 ## 5. Result and Analysis
 
 ### 5.1 Module 1: Foundational Modeling under Ideal Conditions
+Under ideal conditions, all three feature extractors achieved perfect or near-perfect classification accuracy, confirming that clean, thresholded gesture images are highly separable in a compressed feature space. 
 
+The PCA variance plot below shows that approximately 95% of the total variance is captured within the first 100 principal components, confirming aggressive but lossless dimensionality reduction. 
+<p align="center">
+  <img src="./results/pca_variance_ideal.png" alt="PCA Variance - Ideal"><br>
+  <em>Figure: PCA Variance - Ideal</em>
+</p>
 
-![PCA Variance - Ideal](./results/pca_variance_ideal.png)
-![KNN Tuning - Ideal PCA](./results/knn_tuning_ideal_pca.png)
-![Confusion Matrix - Ideal PCA](./results/confusion_matrix_ideal_pca.png)
+The KNN tuning curve identifies the optimal K, and the confusion matrix confirms clean per-class separation with no systematic misclassifications under ideal conditions.
+<p align="center">
+  <img src="./results/knn_tuning_ideal_pca.png" alt="KNN Tuning - Ideal PCA"><br>
+  <em>Figure: KNN Tuning - Ideal PCA</em>
+</p>
+<p align="center">
+  <img src="./results/confusion_matrix_ideal_pca.png" alt="Confusion Matrix - Ideal PCA"><br>
+  <em>Figure: Confusion Matrix - Ideal PCA</em>
+</p>
 
 ### 5.2 Module 2: Robustness Evaluation under Complex Environments
 
