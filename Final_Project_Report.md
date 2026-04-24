@@ -13,7 +13,6 @@ This project aims to bridge this gap by building a robust finger counting model.
 - **Perspective Variance:** Gestures captured from various angles.
 - **Individual Diversity:** Variations in hand shapes and sizes across different users.
 - **Interactive Application:** Integration of the finger-count model into real-time environments, such as Rock-Paper-Scissors game, to evaluate robustness, usability, and reliability under dynamic, real-world conditions. 
-Although there are some 
 ---
 
 ## 2. Research Questions
@@ -73,7 +72,7 @@ The PCA variance plot below shows that approximately 95% of the total variance i
   <em>Figure: PCA Variance - Ideal</em>
 </p>
 
-The KNN tuning curve identifies the optimal K, and the confusion matrix confirms clean per-class separation with no systematic misclassifications under ideal conditions.
+The KNN tuning curve identifies the optimal K (K=5). The confusion matrix confirms clean per-class separation with no systematic misclassifications under ideal conditions.
 <p align="center">
   <img src="./results/knn_tuning_ideal_pca.png" alt="KNN Tuning - Ideal PCA"><br>
   <em>Figure: KNN Tuning - Ideal PCA</em>
@@ -133,10 +132,16 @@ Although both LDA and HOG+PCA achieved identical accuracy (0.8824) and robustnes
 With LDA selected as the feature extraction method, this module compares KNN and SVM to determine which works better for the three-class Rock-Paper-Scissors (RPS) subset. The best model is then used in a live 10-round simulation.
 
 **Classifier Comparison:**
-Both KNN and SVM achieved very high accuracy on the RPS subset, with SVM slightly outperforming KNN (0.9997 vs. 0.9994), as shown in the classifier comparison bar chart below. While the difference is small, SVM was chosen because it can create more flexible decision boundaries in the reduced 5-dimensional LDA space, where the classes are tightly clustered. Based on this, SVM was selected as the final model for deployment.
+Both KNN and SVM achieved very high accuracy on the RPS subset, with SVM slightly outperforming KNN (99.97% vs. 99.94%), as shown in the classifier comparison bar chart below. While the difference is small, SVM was chosen because it can create more flexible decision boundaries in the reduced 5-dimensional LDA space, where the classes are tightly clustered. Based on this, SVM was selected as the final model for deployment.
 <p align="center">
   <img src="./results/rps_classifier_accuracy_comparison.png" alt="RPS Classifier Accuracy Comparison: KNN vs SVM"><br>
   <em>Figure: RPS Classifier Accuracy Comparison: KNN vs SVM</em>
+</p>
+
+The KNN tuning curve shows that accuracy stayed at 100% for all K values from 1 to 30. This suggests the LDA feature space separates the three RPS classes almost perfectly. As a result, the choice of K has no practical impact on training performance for this subset, and K=5 is selected as a reasonable default.
+<p align="center">
+  <img src="./results/knn_tuning_game_lda_knn.png" alt="knn tuning game lda knn.png"><br>
+  <em>Figure: KNN Tuning Curve - RPS Game Subset, LDA Features</em>
 </p>
 
 **Game Simulation Results:**
