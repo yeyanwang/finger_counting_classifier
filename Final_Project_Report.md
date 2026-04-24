@@ -12,7 +12,12 @@ This project aims to bridge this gap by building a robust finger counting model.
 - **Environmental Noise:** Cluttered backgrounds and inconsistent lighting.
 - **Perspective Variance:** Gestures captured from various angles.
 - **Individual Diversity:** Variations in hand shapes and sizes across different users.
-- **Interactive Application:** Integration of the finger-count model into real-time environments, such as Rock-Paper-Scissors game, to evaluate robustness, usability, and reliability under dynamic, real-world conditions. 
+- **Interactive Application:** Integration of the finger-count model into real-time environments, such as Rock-Paper-Scissors game, to evaluate robustness, usability, and reliability under dynamic, real-world conditions.
+
+While contemporay "black-box" frameworks provide high end-to-end accuracy and robust computational results, for instances, the MediaPipe framework achieves a mean precision of 95.7% in palm identification by utilizing a coordinated machine learning pipeline to infer 3D landmarks (Roy et al., 2022) Similarly, Convolutional Neural Networks (CNN) and models like YOLOv3 are used to learn features and classify gestures directly from video frames, achieving accuracies as high as 97.68%. Futhermore, by using Skeletal and 3D Modeling can improve the detection of complex features, such as track the skeletal joints of the hand (such as 20 or 25 joints) as well as their trajectories, curvatures and angles(Oudah et al., 2020) However, their logic for a specific prediction is hidden within millions of parameters, they often obscure the relationship between raw pixel variance and environmental stressor, we want to quantify how specific real-world scenarios would degrade the underlying feature space in our project.
+
+Therefore, our methodology is not merely a classification task but a comparative study on feature robustness, aiming to quantify the transition from raw intensity data to structural descriptors. We deliberately employs a suite of interpretable algorithms: PCA, LDA, HOG, and UMAP, to deconstruct the mechanics of hand gesture recognition.
+
 ---
 
 ## 2. Research Questions
@@ -170,7 +175,9 @@ This project developed a three-module pipeline for robust finger-counting gestur
 ---
 
 ## 7. References
-1. Zhang, D., Zhao, X., Han, J., & Zhao, Y. (2014). A comparative study on PCA and LDA based EMG pattern recognition for anthropomorphic robotic hand. 2014 IEEE International Conference on Robotics and Automation (ICRA), 4850-4855.
-2. Lai, C. Q., & Teoh, S. S. (2016). An Efficient Method of HOG Feature Extraction Using Selective Histogram Bin and PCA Feature Reduction. Advances in Electrical and Computer Engineering, 16(4), 101-108.
-3. Ahmed, F., Khan, W. A., Iqbal, M., Abazeed, A. R. A., Alrababah, H., & Khan, M. F. (2023). Rock-paper-scissors image classification using transfer learning. 2023 International Conference on Business Analytics for Technology and Security (ICBATS), 1-6.
-4. Reza, A. M. (2004). Realization of the Contrast Limited Adaptive Histogram Equalization (CLAHE) for Real-Time Image Enhancement. Journal of VLSI Signal Processing Systems, 38, 35-44.
+1. Roy, K., & Akif, M. A. H. (2022, February). Real time hand gesture based user friendly human computer interaction system. In 2022 International Conference on Innovations in Science, Engineering and Technology (ICISET) (pp. 260-265). IEEE.
+2. Oudah, M., Al-Naji, A., & Chahl, J. (2020). Hand gesture recognition based on computer vision: a review of techniques. journal of Imaging, 6(8), 73.
+3. Zhang, D., Zhao, X., Han, J., & Zhao, Y. (2014). A comparative study on PCA and LDA based EMG pattern recognition for anthropomorphic robotic hand. 2014 IEEE International Conference on Robotics and Automation (ICRA), 4850-4855.
+4. Lai, C. Q., & Teoh, S. S. (2016). An Efficient Method of HOG Feature Extraction Using Selective Histogram Bin and PCA Feature Reduction. Advances in Electrical and Computer Engineering, 16(4), 101-108.
+5. Ahmed, F., Khan, W. A., Iqbal, M., Abazeed, A. R. A., Alrababah, H., & Khan, M. F. (2023). Rock-paper-scissors image classification using transfer learning. 2023 International Conference on Business Analytics for Technology and Security (ICBATS), 1-6.
+6. Reza, A. M. (2004). Realization of the Contrast Limited Adaptive Histogram Equalization (CLAHE) for Real-Time Image Enhancement. Journal of VLSI Signal Processing Systems, 38, 35-44.
