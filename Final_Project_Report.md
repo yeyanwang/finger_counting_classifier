@@ -33,8 +33,26 @@ Therefore, our methodology is not merely a classification task but a comparative
 
 ### 3.1 Data Source
 * **Dataset 1 (Ideal):** [Finger Digits 0-5](https://www.kaggle.com/datasets/roshea6/finger-digits-05). 12,000 thresholded images with isolated hand gestures against black backgrounds.
+<div align="center">
+  <img width="949" height="150" alt="Sample_Images_for_Dataset_1" src="https://github.com/user-attachments/assets/322b2c62-0415-4020-9bac-5ab97e65c74a" />
+  <strong><em><sub>Figure 1: Sample Images for Dataset 1</sub></em></strong>
+</div>
+<br>
+
 * **Dataset 2 (Stressed):** [Counting Fingers Dataset](https://www.kaggle.com/datasets/piyushjoshi01/counting-fingers-dataset). Gestures captured in natural environments with significant background clutter and inconsistent lighting.
+<div align="center">
+  <img width="880" height="198" alt="Sample_Images_for_Dataset_2" src="https://github.com/user-attachments/assets/b7abe93b-a205-4c25-ba7b-a114c910761d" />
+  <strong><em><sub>Figure 2: Sample Images for Dataset 2</sub></em></strong>
+</div>
+<br>
+
 * **Dataset 3 (Game):** [Fingers Dataset](https://www.kaggle.com/datasets/koryakinp/fingers). This dataset contains hand gesture images spanning classes 0–5, and will serve as unseen data for evaluating our Rock-Paper-Scissors game simulation in Module 3.
+<div align="center">
+  <img width="892" height="313" alt="sample_images_for_dataset_3" src="https://github.com/user-attachments/assets/91f8e339-0ee5-4642-8e69-49d0e0b449b0" />
+  <strong><em><sub>Figure 3: Sample Images for Dataset 3</sub></em></strong>
+</div>
+<br>
+
 
 ### 3.2 Preprocessing and Standardization
 To ensure mathematical stability and prevent bias, the preprocessing and standardization steps are excecuted before model processing.
