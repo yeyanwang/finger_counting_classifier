@@ -101,9 +101,36 @@ $$
   * Robustness Floor: We enforce $K_{final} = \max(K_{opt}, 5)$ to ensure a minimum neighborhood consensus, protecting the model from localized pixel noise in the Stressed dataset.
 
 ### 4.2 Module 2: Robustness Evaluation (`run_module_2()`)
-This core phase acts as a "Robustness Tournament" by transitioning models to the Stressed dataset to evaluate resilience against environmental noise.
-* **Algorithm Showdown:** We evaluate all linear extractors against non-linear manifold learning techniques (**ISOMAP** and **UMAP**). UMAP is specifically included to test its ability to preserve local topology with higher computational stability than ISOMAP.
-* **Robustness Decay Quantification:** The automated evaluation module calculates the "Robustness Decay"—the percentage drop in accuracy between the Ideal and Stressed datasets—to dynamically identify the most resilient feature extraction method.
+This module aims to measure how different models (linear methods in Module 1 versus non-linear Manifold Learning methods) affects the "Robustness Tournament". We evaluate the resilience of feature extraction pipelines against environmental noise, background clutter, and varying illumination.
+
+- Non-linear Manifold Learning:
+
+1. Isometric Mapping (**ISOMAP**): 
+   ISOMAP is implemented to capture the non-linear geometric structure of hand gestures by preserving geodesic distances.
+   - Neighborhood Graph: Constructs an adjacency graph $G$ where each point $\mathbf{x}_i$ is connected to its $k$-nearest neighbors.
+   - Geodesic Distance: Approximates the distance along the manifold surface using the shortest path algorithm: $d_G(i, j) = \min(path_{i \to j})$.
+   - Embedding: Applies MDS to the resulting geodesic distance matrix to find low-dimensional coordinates $\mathbf{y}_i$.
+
+2. Uniform Manifold Approximation and Projection (**UMAP**): 
+   UMAP is utilized to explore topological connectivity. It assumes the data is uniformly distributed on a locally connected Riemannian manifold.
+   - Fuzzy Simplicial Set: Constructs a high-dimensional fuzzy topological representation of the data.
+   - Layout Optimization: Minimizes the cross-entropy between the high-dimensional and low-dimensional representations to preserve both local and global structures:
+   
+$$
+CE(P, Q) = \sum_{a \in A} \left( \mu(a) \log \frac{\mu(a)}{\nu(a)} + (1 - \mu(a)) \log \frac{1 - \mu(a)}{1 - \nu(a)} \right)
+$$
+
+&nbsp;&nbsp;&nbsp;&nbsp;Where $\mu$ and $\nu$ represent the membership strengths in the high and low-dimensional graphs, respectively.
+
+- Resilience Assessment & Tournament Logic:
+
+* Robustness Decay: We quantify the sensitivity of each pipeline to environmental stress by calculating the percentage drop in accuracy from the Ideal to the Stressed dataset:
+  
+$$
+Robustness Decay = \frac{Accuracy_{Ideal} - Accuracy_{Stressed}}{Accuracy_{Ideal}} \times 100\%
+$$
+
+* Tournament Mechanism: The pipeline automatically iterates through all linear and non-linear extractors, ranking them based on their "Resilience Score" (minimum decay) to identify the optimal model for real-time deployment.
 
 ### 4.3 Module 3: Rock-Paper-Scissors Application (`run_module_3()`)
 We translate our experimental findings into a strategic deployment.
@@ -166,12 +193,20 @@ For the gradient-based method,`Figure7: KNN Tuning - Ideal HOG` also demonstrate
 ### 5.2 Module 2: Robustness Evaluation under Complex Environments
 
 **Objective:**
-The focus of Module 2 is the "Robustness Tournament." We evaluated how environmental complexity affects classification performance by measuring "Robustness Decay"—the percentage drop in accuracy when moving from the ideal dataset to the stressed dataset.
+The focus of Module 2 is the "Robustness Tournament." We evaluated how environmental complexity (cluttered backgrounds and inconsistent lighting) affects classification performance by measuring "Robustness Decay." 
 
-<p align="center">
+#### 5.2.1 Dimensionality Reduction and Variance Analysis (Stressed PCA)
+When transitioning to the Stressed dataset, the complexity of the background noise severely impacts feature extraction.
+
+<div align="center">
   <img src="./results/pca_variance_stressed.png" alt="PCA Variance - Stressed"><br>
-  <em>Figure: PCA Explained Variance for the Stressed Dataset</em>
-</p>
+  <strong><em><sub>Figure 9: PCA Explained Variance for the Stressed Dataset</sub></em></strong>
+</div>
+<br>
+
+As shown in `Figure 9`, retaining 95% of the variance now requires only 51 principal components (compared to 131 in the Ideal dataset). This dramatic reduction suggests that linear PCA is likely capturing dominant, high-variance background noise rather than the nuanced structural details of the hands.
+
+#### 5.2.2 Experimental Performance and Robustness Decay
 
 <div align="center">
   
@@ -189,24 +224,26 @@ The focus of Module 2 is the "Robustness Tournament." We evaluated how environme
 </div>
 
 **Discussion of Robustness Analysis:**
-* **Linear vs. Non-linear Resilience:** Surprisingly, non-linear manifold learning (**ISOMAP**) performed identically to linear **PCA** (0.7647). **UMAP** suffered the highest decay (41.18%), suggesting that for low-sample noisy environments, complex non-linear projections may overfit background noise.
-* **Structural Descriptors:** The **HOG + PCA** pipeline demonstrated high accuracy performance (0.8824). Gradient-based structural descriptors effectively isolated gesture geometry from pixel-level background fluctuations.
-* **Supervised Feature Extraction:** **LDA** tied for the highest accuracy (same performance with HOG + PCA). By maximizing inter-class separability, LDA successfully filtered out environmental stress that unsupervised methods (PCA) failed to ignore.
+* **Vulnerability of Non-linear Manifolds:** Surprisingly, non-linear manifold learning (**ISOMAP**) performed identically to the linear **PCA** baseline (0.7647). **UMAP** suffered the most severe accuracy drop (41.18%). This suggests that in low-sample, high-noise environments, complex non-linear projections tend to overfit the background clutter, failing to capture the true underlying gesture manifold.
+* **Stability of Gradient Features:** The **HOG + PCA** pipeline demonstrated high performance (0.8824). Because HOG relies on local gradient orientations rather than raw pixel intensities, it effectively isolates gesture geometry and ignores pixel-level background fluctuations.
+* **Advantages of Supervised Learning:** **LDA** also tied for the highest accuracy (0.8824). By actively maximizing inter-class separability via class labels during the training phase, LDA successfully filtered out environmental stress that unsupervised methods completely failed to ignore.
 
-<p align="center">
+<div align="center">
   <img src="./results/robustness_decay_pca_+_knn.png" alt="Robustness Decay Chart"><br>
-  <em>Figure: Robustness Decay Comparison</em>
-</p>
+  <strong><em><sub>Figure 10: Robustness Decay Comparison (PCA + KNN)</sub></em></strong>
+</div>
+<br>
 
 **Conclusion for Model Selection:**
-Although both LDA and HOG+PCA achieved identical accuracy (0.8824) and robustness decay (11.76%), **LDA** was selected as the final robust feature extractor for the interactive application in Module 3 due to its superior computational efficiency:
-1. **Dimensionality:** LDA successfully compressed the data into just **5 dimensions** (n_classes - 1), whereas the HOG+PCA pipeline required **60 dimensions** to achieve the same result, which shows a much lower computational cost.
-2. **Inference Latency:** For the real-time Rock-Paper-Scissors game, LDA requires only computationally lightweight matrix multiplications during inference, unlike HOG which requires expensive gradient calculations across the image. 
+Although both LDA and HOG+PCA achieved identical accuracy (0.8824) and robustness decay (11.76%), **LDA** was selected as the optimal feature extractor for the interactive application in Module 3 due to its advantages as followed:
+1. **Dimensionality:** LDA successfully compressed the data into just **5 dimensions** (number of classes - 1), whereas the HOG+PCA pipeline required **60 dimensions** to achieve the exact same accuracy. 
+2. **Inference Latency:** For a real-time Rock-Paper-Scissors game, LDA requires only computationally lightweight matrix multiplications during inference. In contrast, HOG requires computationally expensive, sliding-window gradient calculations across the entire image. 
 
-<p align="center">
+<div align="center">
   <img src="./results/confusion_matrix_stressed_pca.png" alt="Confusion Matrix - Stressed PCA"><br>
-  <em>Figure: Confusion Matrix for Stressed Dataset</em>
-</p>
+  <strong><em><sub>Figure 11: Confusion Matrix for Stressed Dataset (PCA)</sub></em></strong>
+</div>
+<br>
 
 ### 5.3 Module 3: Rock-Paper-Scissors (Strategic Application)
 **Objective:**
