@@ -32,21 +32,25 @@ Therefore, our methodology is not merely a classification task but a comparative
 ## 3. Data Source & Preprocessing
 
 ### 3.1 Data Source
-* **Dataset 1 (Ideal):** [Finger Digits 0-5](https://www.kaggle.com/datasets/roshea6/finger-digits-05). 12,000 thresholded images with isolated hand gestures against black backgrounds.
+
+#### 3.1.1 Dataset 1 (Ideal)
+[Finger Digits 0-5](https://www.kaggle.com/datasets/roshea6/finger-digits-05). 12,000 thresholded images with isolated hand gestures against black backgrounds.
 <div align="center">
   <img width="949" height="150" alt="Sample_Images_for_Dataset_1" src="https://github.com/user-attachments/assets/322b2c62-0415-4020-9bac-5ab97e65c74a" />
   <strong><em><sub>Figure 1: Sample Images for Dataset 1</sub></em></strong>
 </div>
 <br>
 
-* **Dataset 2 (Stressed):** [Counting Fingers Dataset](https://www.kaggle.com/datasets/piyushjoshi01/counting-fingers-dataset). Gestures captured in natural environments with significant background clutter and inconsistent lighting.
+#### 3.1.2 Dataset 2 (Stressed)
+[Counting Fingers Dataset](https://www.kaggle.com/datasets/piyushjoshi01/counting-fingers-dataset). Gestures captured in natural environments with significant background clutter and inconsistent lighting.
 <div align="center">
   <img width="880" height="198" alt="Sample_Images_for_Dataset_2" src="https://github.com/user-attachments/assets/b7abe93b-a205-4c25-ba7b-a114c910761d" />
   <strong><em><sub>Figure 2: Sample Images for Dataset 2</sub></em></strong>
 </div>
 <br>
 
-* **Dataset 3 (Game):** [Fingers Dataset](https://www.kaggle.com/datasets/koryakinp/fingers). This dataset contains hand gesture images spanning classes 0–5, and will serve as unseen data for evaluating our Rock-Paper-Scissors game simulation in Module 3.
+#### 3.1.3 Dataset 3 (Game)
+[Fingers Dataset](https://www.kaggle.com/datasets/koryakinp/fingers). This dataset contains hand gesture images spanning classes 0–5, and will serve as unseen data for evaluating our Rock-Paper-Scissors game simulation in Module 3.
 <div align="center">
   <img width="892" height="313" alt="sample_images_for_dataset_3" src="https://github.com/user-attachments/assets/91f8e339-0ee5-4642-8e69-49d0e0b449b0" />
   <strong><em><sub>Figure 3: Sample Images for Dataset 3</sub></em></strong>
@@ -56,12 +60,26 @@ Therefore, our methodology is not merely a classification task but a comparative
 
 ### 3.2 Preprocessing and Standardization
 To ensure mathematical stability and prevent bias, the preprocessing and standardization steps are excecuted before model processing.
-* **Resizing & Flattening:** Each 2D image $\mathbf{I}$ is resized to $64 \times 64$ pixels. The resized matrix $\mathbf{I} \in \mathbb{R}^{64 \times 64}$ are then flattened into 4096-dimensional vectors $\mathbf{x} \in \mathbb{R}^d$ for linear processing.
-* **Normalization:** Pixel-level Z-score standardization is applied to ensure scale uniformity across all features:
-  $$\mathbf{x}_{std} = \frac{\mathbf{x} - \mu}{\sigma + \epsilon}$$
-  Where $\mu$ and $\sigma$ are the mean and standard deviation of the image pixels, and $\epsilon = 1e^{-7}$ is a small constant (epsilon) added to prevent division by zero.
-* **Class Balancing:** The training set undergoes automated class augmentation to ensure an equal sample distribution, preventing downstream classifiers from biasing toward majority gestures.
-* **Environmental Mitigation (Dataset 2 Only):** For the Stressed dataset, Gaussian smoothing is applied to reduce high-frequency noise: $$G(x, y) = \frac{1}{2\pi\sigma^2} e^{-\frac{x^2+y^2}{2\sigma^2}}$$ This convolution smooths the image, allowing the model to focus on the primary structural contours of the hand. Then followed by Contrast Limited Adaptive Histogram Equalization (CLAHE) to mitigate uneven lighting.
+
+#### 3.2.1 Resizing & Flattening
+Each 2D image $\mathbf{I}$ is resized to $64 \times 64$ pixels. The resized matrix $\mathbf{I} \in \mathbb{R}^{64 \times 64}$ are then flattened into 4096-dimensional vectors $\mathbf{x} \in \mathbb{R}^d$ for linear processing.
+
+#### 3.2.2 Normalization
+Pixel-level Z-score standardization is applied to ensure scale uniformity across all features:
+$$
+\mathbf{x}_{std} = \frac{\mathbf{x} - \mu}{\sigma + \epsilon}
+$$
+Where $\mu$ and $\sigma$ are the mean and standard deviation of the image pixels, and $\epsilon = 1e^{-7}$ is a small constant (epsilon) added to prevent division by zero.
+
+#### 3.2.3 Class Balancing
+The training set undergoes automated class augmentation to ensure an equal sample distribution, preventing downstream classifiers from biasing toward majority gestures.
+
+#### 3.2.4 Environmental Mitigation (Dataset 2 Only)
+For the Stressed dataset, Gaussian smoothing is applied to reduce high-frequency noise: 
+$$
+G(x, y) = \frac{1}{2\pi\sigma^2} e^{-\frac{x^2+y^2}{2\sigma^2}}
+$$
+This convolution smooths the image, allowing the model to focus on the primary structural contours of the hand. Then followed by Contrast Limited Adaptive Histogram Equalization (CLAHE) to mitigate uneven lighting.
 
 ---
 
@@ -71,15 +89,16 @@ The project is structured into three progressive modules to evaluate and enhance
 ### 4.1 Module 1: Foundational Modeling (`run_module_1()`)
 This module establishes a baseline performance ceiling by evaluating foundational feature extractors on the noise-free, Ideal dataset. 
 
-- Feature Engineering & Dimensionality Reduction
+#### 4.1.1 Feature Engineering & Dimensionality Reduction
   
-1. Principal Component Analysis (**PCA**):
-    We implement Principal Component Analysis (PCA) as a baseline for global feature extraction. we reduce the 4096-dimensional pixel space into a lower-dimensional subspace while retaining 95% of the variance.
-     - Covariance Matrix: $\mathbf{C} = \frac{1}{n-1} \sum_{i=1}^{n} (\mathbf{x}_i - \bar{\mathbf{x}})(\mathbf{x}_i - \bar{\mathbf{x}})^T$.
-     - Eigen-Decomposition: Solving $\mathbf{C}\mathbf{v} = \lambda \mathbf{v}$.
-     - Selection: We retain components satisfying  $\frac{\sum_{i=1}^{k} \lambda_i}{\sum_{j=1}^{d} \lambda_j} \geq 0.95 $.
-        
-2. Supervised Linear Projection (**PCA+LDA**): Building on the comparative study of robotic hand control by (Zhang et al., 2014), this framework integrates PCA and Linear Discriminant Analysis (LDA). LDA maximizes class separability by solving for the weight vector $w$ that maximizes the Fisher criterion:
+##### 4.1.1.1 Principal Component Analysis (PCA)
+We implement Principal Component Analysis (PCA) as a baseline for global feature extraction. we reduce the 4096-dimensional pixel space into a lower-dimensional subspace while retaining 95% of the variance.
+- Covariance Matrix: $\mathbf{C} = \frac{1}{n-1} \sum_{i=1}^{n} (\mathbf{x}_i - \bar{\mathbf{x}})(\mathbf{x}_i - \bar{\mathbf{x}})^T$.
+- Eigen-Decomposition: Solving $\mathbf{C}\mathbf{v} = \lambda \mathbf{v}$.
+- Selection: We retain components satisfying  $\frac{\sum_{i=1}^{k} \lambda_i}{\sum_{j=1}^{d} \lambda_j} \geq 0.95 $.
+      
+##### 4.1.1.2 Supervised Linear Projection (PCA+LDA)
+Building on the comparative study of robotic hand control by (Zhang et al., 2014), this framework integrates PCA and Linear Discriminant Analysis (LDA). LDA maximizes class separability by solving for the weight vector $w$ that maximizes the Fisher criterion:
 
 $$
 J(w) = \frac{w^T S_B w}{w^T S_W w}
@@ -87,7 +106,8 @@ $$
 
 &nbsp;&nbsp;&nbsp;&nbsp;Where $S_B$ represents between-class scatter and $S_W$ represents within-class scatter.
 
-3. Structural Gradient Descriptors (**HOG+PCA**): Drawing on the research of (Lai & Teoh, 2016), HOG captures local shape by calculating the gradient magnitude and orientation $\theta$, then applied PCA to refine the high-dimensional HOG vectors into a manageable feature set:
+##### 4.1.1.3 Structural Gradient Descriptors (HOG+PCA)
+Drawing on the research of (Lai & Teoh, 2016), HOG captures local shape by calculating the gradient magnitude and orientation $\theta$, then applied PCA to refine the high-dimensional HOG vectors into a manageable feature set:
   
 $$
 Magnitude = \sqrt{G_x^2 + G_y^2}, \quad \theta = \arctan\left(\frac{G_y}{G_x}\right)
@@ -95,26 +115,26 @@ $$
   
 &nbsp;&nbsp;&nbsp;&nbsp;These are binned into histograms within $8 \times 8$ cells and normalized across $2 \times 2$ blocks to ensure local contrast invariance.
 
-- Automated Hyperparameter Tuning (Grid Search):
-  * Distance: Euclidean distance $L_2 = \|\mathbf{z}_i - \mathbf{z}_q\|_2$.
-  * Optimal K: Determined via GridSearchCV ($K \in [1, 30]$) with 5-fold cross-validation.
-  * Robustness Floor: We enforce $K_{final} = \max(K_{opt}, 5)$ to ensure a minimum neighborhood consensus, protecting the model from localized pixel noise in the Stressed dataset.
+#### 4.1.2 Automated Hyperparameter Tuning (Grid Search)
+* **Distance:** Euclidean distance $L_2 = \|\mathbf{z}_i - \mathbf{z}_q\|_2$.
+* **Optimal K:** Determined via GridSearchCV ($K \in [1, 30]$) with 5-fold cross-validation.
+* **Robustness Floor:** We enforce $K_{final} = \max(K_{opt}, 5)$ to ensure a minimum neighborhood consensus, protecting the model from localized pixel noise in the Stressed dataset.
 
 ### 4.2 Module 2: Robustness Evaluation (`run_module_2()`)
 This module aims to measure how different models (linear methods in Module 1 versus non-linear Manifold Learning methods) affects the "Robustness Tournament". We evaluate the resilience of feature extraction pipelines against environmental noise, background clutter, and varying illumination.
 
-- Non-linear Manifold Learning:
+#### 4.2.1 Non-linear Manifold Learning
 
-1. Isometric Mapping (**ISOMAP**): 
-   Introduced by (Tenenbaum et al., 2000), ISOMAP is implemented to capture the non-linear geometric structure of hand gestures by preserving geodesic distances.
-   - Neighborhood Graph: Constructs an adjacency graph $G$ where each point $\mathbf{x}_i$ is connected to its $k$-nearest neighbors.
-   - Geodesic Distance: Approximates the distance along the manifold surface using the shortest path algorithm: $d_G(i, j) = \min(path_{i \to j})$.
-   - Embedding: Applies MDS to the resulting geodesic distance matrix to find low-dimensional coordinates $\mathbf{y}_i$.
+##### 4.2.1.1 Isometric Mapping (ISOMAP) 
+Introduced by (Tenenbaum et al., 2000), ISOMAP is implemented to capture the non-linear geometric structure of hand gestures by preserving geodesic distances.
+- Neighborhood Graph: Constructs an adjacency graph $G$ where each point $\mathbf{x}_i$ is connected to its $k$-nearest neighbors.
+- Geodesic Distance: Approximates the distance along the manifold surface using the shortest path algorithm: $d_G(i, j) = \min(path_{i \to j})$.
+- Embedding: Applies MDS to the resulting geodesic distance matrix to find low-dimensional coordinates $\mathbf{y}_i$.
 
-2. Uniform Manifold Approximation and Projection (**UMAP**): 
-   Introduced by (McInnes et al., 2018), UMAP is utilized to explore topological connectivity. It assumes the data is uniformly distributed on a locally connected Riemannian manifold.
-   - Fuzzy Simplicial Set: Constructs a high-dimensional fuzzy topological representation of the data.
-   - Layout Optimization: Minimizes the cross-entropy between the high-dimensional and low-dimensional representations to preserve both local and global structures:
+##### 4.2.1.2 Uniform Manifold Approximation and Projection (UMAP)
+Introduced by (McInnes et al., 2018), UMAP is utilized to explore topological connectivity. It assumes the data is uniformly distributed on a locally connected Riemannian manifold.
+- Fuzzy Simplicial Set: Constructs a high-dimensional fuzzy topological representation of the data.
+- Layout Optimization: Minimizes the cross-entropy between the high-dimensional and low-dimensional representations to preserve both local and global structures:
    
 $$
 CE(P, Q) = \sum_{a \in A} \left( \mu(a) \log \frac{\mu(a)}{\nu(a)} + (1 - \mu(a)) \log \frac{1 - \mu(a)}{1 - \nu(a)} \right)
@@ -122,27 +142,37 @@ $$
 
 &nbsp;&nbsp;&nbsp;&nbsp;Where $\mu$ and $\nu$ represent the membership strengths in the high and low-dimensional graphs, respectively.
 
-- Resilience Assessment & Tournament Logic:
+#### 4.2.2 Resilience Assessment & Tournament Logic
 
-* Robustness Decay: We quantify the sensitivity of each pipeline to environmental stress by calculating the percentage drop in accuracy from the Ideal to the Stressed dataset:
+##### 4.2.2.1 Robustness Decay
+We quantify the sensitivity of each pipeline to environmental stress by calculating the percentage drop in accuracy from the Ideal to the Stressed dataset:
   
 $$
 Robustness Decay = \frac{Accuracy_{Ideal} - Accuracy_{Stressed}}{Accuracy_{Ideal}} \times 100\%
 $$
 
-* Tournament Mechanism: The pipeline automatically iterates through all linear and non-linear extractors, ranking them based on their "Resilience Score" (minimum decay) to identify the optimal model for real-time deployment.
+##### 4.2.2.2 Tournament Mechanism
+The pipeline automatically iterates through all linear and non-linear extractors, ranking them based on their "Resilience Score" (minimum decay) to identify the optimal model for real-time deployment.
 
 ### 4.3 Module 3: Rock-Paper-Scissors Application (`run_module_3()`)
 We translate our experimental findings into a strategic deployment.
-* **Data Subsetting & Downsampling:** The dataset is filtered to include only Rock (0), Scissors (2), and Paper (5). To ensure a perfectly balanced simulation, these classes are strictly downsampled to a maximum of 500 samples per class (`MAX_PER_CLASS = 500`).
-* **Classifier Showdown:** Inheriting the winning feature extractor from Module 2, we initiate a final comparison between **K-NN** and a Support Vector Machine (**SVM**) using an RBF kernel. 
-* **Game Simulation:** The winning classifier is deployed into a 10-round RPS simulation. Game outcomes (Win/Lose/Tie) are determined by comparing the model's predicted gesture against a randomly sampled computer move, with representative outcome examples visualized for analysis.
+
+#### 4.3.1 Data Subsetting & Downsampling
+The dataset is filtered to include only Rock (0), Scissors (2), and Paper (5). To ensure a perfectly balanced simulation, these classes are strictly downsampled to a maximum of 500 samples per class (`MAX_PER_CLASS = 500`).
+
+#### 4.3.2 Classifier Showdown
+Inheriting the winning feature extractor from Module 2, we initiate a final comparison between **K-NN** and a Support Vector Machine (**SVM**) using an RBF kernel. 
+
+#### 4.3.3 Game Simulation
+The winning classifier is deployed into a 10-round RPS simulation. Game outcomes (Win/Lose/Tie) are determined by comparing the model's predicted gesture against a randomly sampled computer move, with representative outcome examples visualized for analysis.
+
 ---
 
 ## 5. Result and Analysis
 
 ### 5.1 Module 1: Foundational Modeling under Ideal Conditions
 The primary objective of Module 1 is to establish a performance "ceiling" under controlled conditions, characterized by uniform backgrounds and consistent lighting. By evaluating the Ideal dataset, we validate the integrity of the feature extraction pipeline and the classification logic before introducing environmental complexity.
+
 #### 5.1.1 Dimensionality Reduction and Variance Analysis (PCA)
 The initial 4096-dimensional pixel space ($64 \times 64$ grayscale) was processed using Principal Component Analysis (PCA) to evaluate data redundancy.
 
@@ -192,10 +222,10 @@ For the gradient-based method,`Figure7: KNN Tuning - Ideal HOG` also demonstrate
 
 ### 5.2 Module 2: Robustness Evaluation under Complex Environments
 
-**Objective:**
+#### 5.2.1 Objective
 The focus of Module 2 is the "Robustness Tournament." We evaluated how environmental complexity (cluttered backgrounds and inconsistent lighting) affects classification performance by measuring "Robustness Decay." 
 
-#### 5.2.1 Dimensionality Reduction and Variance Analysis (Stressed PCA)
+#### 5.2.2 Dimensionality Reduction and Variance Analysis (Stressed PCA)
 When transitioning to the Stressed dataset, the complexity of the background noise severely impacts feature extraction.
 
 <div align="center">
@@ -206,7 +236,7 @@ When transitioning to the Stressed dataset, the complexity of the background noi
 
 As shown in `Figure 9`, retaining 95% of the variance now requires only 51 principal components (compared to 131 in the Ideal dataset). This dramatic reduction suggests that linear PCA is likely capturing dominant, high-variance background noise rather than the nuanced structural details of the hands.
 
-#### 5.2.2 Experimental Performance and Robustness Decay
+#### 5.2.3 Experimental Performance and Robustness Decay
 
 <div align="center">
   
@@ -223,10 +253,16 @@ As shown in `Figure 9`, retaining 95% of the variance now requires only 51 princ
 
 </div>
 
-**Discussion of Robustness Analysis:**
-* **Vulnerability of Non-linear Manifolds:** Surprisingly, non-linear manifold learning (**ISOMAP**) performed identically to the linear **PCA** baseline (0.7647). **UMAP** suffered the most severe accuracy drop (41.18%). This suggests that in low-sample, high-noise environments, complex non-linear projections tend to overfit the background clutter, failing to capture the true underlying gesture manifold.
-* **Stability of Gradient Features:** The **HOG + PCA** pipeline demonstrated high performance (0.8824). Because HOG relies on local gradient orientations rather than raw pixel intensities, it effectively isolates gesture geometry and ignores pixel-level background fluctuations.
-* **Advantages of Supervised Learning:** **LDA** also tied for the highest accuracy (0.8824). By actively maximizing inter-class separability via class labels during the training phase, LDA successfully filtered out environmental stress that unsupervised methods completely failed to ignore.
+#### 5.2.4 Discussion of Robustness Analysis
+
+##### 5.2.4.1 Vulnerability of Non-linear Manifolds
+Surprisingly, non-linear manifold learning (**ISOMAP**) performed identically to the linear **PCA** baseline (0.7647). **UMAP** suffered the most severe accuracy drop (41.18%). This suggests that in low-sample, high-noise environments, complex non-linear projections tend to overfit the background clutter, failing to capture the true underlying gesture manifold.
+
+##### 5.2.4.2 Stability of Gradient Features
+The **HOG + PCA** pipeline demonstrated high performance (0.8824). Because HOG relies on local gradient orientations rather than raw pixel intensities, it effectively isolates gesture geometry and ignores pixel-level background fluctuations.
+
+##### 5.2.4.3 Advantages of Supervised Learning
+**LDA** also tied for the highest accuracy (0.8824). By actively maximizing inter-class separability via class labels during the training phase, LDA successfully filtered out environmental stress that unsupervised methods completely failed to ignore.
 
 <div align="center">
   <img src="./results/robustness_decay_pca_+_knn.png" alt="Robustness Decay Chart"><br>
@@ -234,7 +270,7 @@ As shown in `Figure 9`, retaining 95% of the variance now requires only 51 princ
 </div>
 <br>
 
-**Conclusion for Model Selection:**
+#### 5.2.5 Conclusion for Model Selection
 Although both LDA and HOG+PCA achieved identical accuracy (0.8824) and robustness decay (11.76%), **LDA** was selected as the optimal feature extractor for the interactive application in Module 3 due to its advantages as followed:
 1. **Dimensionality:** LDA successfully compressed the data into just **5 dimensions** (number of classes - 1), whereas the HOG+PCA pipeline required **60 dimensions** to achieve the exact same accuracy. 
 2. **Inference Latency:** For a real-time Rock-Paper-Scissors game, LDA requires only computationally lightweight matrix multiplications during inference. In contrast, HOG requires computationally expensive, sliding-window gradient calculations across the entire image. 
@@ -246,10 +282,11 @@ Although both LDA and HOG+PCA achieved identical accuracy (0.8824) and robustnes
 <br>
 
 ### 5.3 Module 3: Rock-Paper-Scissors (Strategic Application)
-**Objective:**
+
+#### 5.3.1 Objective
 With LDA selected as the feature extraction method, this module compares KNN and SVM to determine which works better for the three-class Rock-Paper-Scissors (RPS) subset. The best model is then used in a live 10-round simulation.
 
-**Classifier Comparison:**
+#### 5.3.2 Classifier Comparison
 Both KNN and SVM achieved very high accuracy on the RPS subset, with SVM slightly outperforming KNN (99.97% vs. 99.94%), as shown in the classifier comparison bar chart below. While the difference is small, SVM was chosen because it can create more flexible decision boundaries in the reduced 5-dimensional LDA space, where the classes are tightly clustered. Based on this, SVM was selected as the final model for deployment.
 <p align="center">
   <img src="./results/rps_classifier_accuracy_comparison.png" alt="RPS Classifier Accuracy Comparison: KNN vs SVM"><br>
@@ -262,7 +299,7 @@ The KNN tuning curve shows that accuracy stayed at 100% for all K values from 1 
   <em>Figure: KNN Tuning Curve - RPS Game Subset, LDA Features</em>
 </p>
 
-**Game Simulation Results:**
+#### 5.3.3 Game Simulation Results
 The deployed model was evaluated across a 10-round Rock-Paper-Scissors game simulation against a randomly sampling computer opponent. The outcome examples below shows one representative Win, Lose, and Tie scenario, confirming that the model correctly identifies gesture classes even under the compressed LDA feature representation. 
 <p align="center">
   <img src="./results/rps_outcomes.png" alt="RPS Game Outcome Examples (Win / Lose / Tie)"><br>
@@ -274,21 +311,31 @@ The deployed model was evaluated across a 10-round Rock-Paper-Scissors game simu
 ## 6. Conclusion
 This project developed a three-module pipeline for robust finger-counting gesture classification, progressively evaluating feature extraction strategies from ideal to stressed conditions and deploying the optimal model into a real-time Rock-Paper-Scissors application. We summarize our key findings below:
 
-**Key Findings & Research Questions Addressed:**
+### 6.1 Key Findings & Research Questions Addressed
 
-* **1. Improvement of PCA+LDA over Standard PCA (Q1):** The cascaded PCA+LDA architecture drastically improved class separability in the feature space. While standard PCA suffered a 23.53% robustness decay under environmental stress, LDA successfully filtered out background noise by maximizing inter-class variance. This capped the decay at just 11.76% while simultaneously compressing the data into an ultra-efficient 5-dimensional space.
+#### 6.1.1 Improvement of PCA+LDA over Standard PCA (Q1)
+The cascaded PCA+LDA architecture drastically improved class separability in the feature space. While standard PCA suffered a 23.53% robustness decay under environmental stress, LDA successfully filtered out background noise by maximizing inter-class variance. This capped the decay at just 11.76% while simultaneously compressing the data into an ultra-efficient 5-dimensional space.
 
-* **2. Hybrid Structural Descriptors vs. Pixel Projections (Q2):** The hybrid HOG+PCA approach demonstrated exceptional resilience, matching LDA's top accuracy (88.24%) and significantly outperforming standard PCA. By isolating local geometric shapes from global lighting variances, HOG proved highly robust. However, as an efficiency tie-breaker, the pixel-level PCA+LDA projection was ultimately preferred for deployment because it achieved the exact same accuracy using only 5 dimensions, compared to HOG's 60 dimensions.
+#### 6.1.2 Hybrid Structural Descriptors vs. Pixel Projections (Q2)
+The hybrid HOG+PCA approach demonstrated exceptional resilience, matching LDA's top accuracy (88.24%) and significantly outperforming standard PCA. By isolating local geometric shapes from global lighting variances, HOG proved highly robust. However, as an efficiency tie-breaker, the pixel-level PCA+LDA projection was ultimately preferred for deployment because it achieved the exact same accuracy using only 5 dimensions, compared to HOG's 60 dimensions.
 
-* **3. Quantifying "Robustness Decay" (Q3):** Transitioning from monochrome to cluttered backgrounds induced significant performance drops across all models, proving that near-perfect accuracy under ideal conditions is highly misleading. We successfully quantified this "Robustness Decay," which ranged from an optimized 11.76% (LDA and HOG) to a severe 41.18% (UMAP), highlighting the absolute necessity of environmental stress-testing for computer vision models.
+#### 6.1.3 Quantifying "Robustness Decay" (Q3)
+Transitioning from monochrome to cluttered backgrounds induced significant performance drops across all models, proving that near-perfect accuracy under ideal conditions is highly misleading. We successfully quantified this "Robustness Decay," which ranged from an optimized 11.76% (LDA and HOG) to a severe 41.18% (UMAP), highlighting the absolute necessity of environmental stress-testing for computer vision models.
 
-* **4. Vulnerability of Manifold Learning in Noise (Q4):** Contrary to our initial hypothesis, manifold learning methods did *not* handle complex backgrounds better than linear PCA. ISOMAP merely matched the standard PCA baseline, while UMAP suffered the highest decay (>40%). This confirms that in low-sample, noisy environments, non-linear algorithms are highly susceptible to overfitting background artifacts rather than capturing the true gesture topology.
+#### 6.1.4 Vulnerability of Manifold Learning in Noise (Q4)
+Contrary to our initial hypothesis, manifold learning methods did *not* handle complex backgrounds better than linear PCA. ISOMAP merely matched the standard PCA baseline, while UMAP suffered the highest decay (>40%). This confirms that in low-sample, noisy environments, non-linear algorithms are highly susceptible to overfitting background artifacts rather than capturing the true gesture topology.
 
-* **5. Strategic Reliability on Game Subsets (Q5):** In module3, the LDA method successfully separated the gestures, allowing both KNN and SVM to achieve extremely high accuracy. We ultimately selected SVM (99.97% accuracy) over KNN because it creates more flexible boundaries to separate the classes. Finally, The successful 10-round live test proved that our system is highly reliable and efficient enough for real-time applications.
+#### 6.1.5 Strategic Reliability on Game Subsets (Q5)
+In module3, the LDA method successfully separated the gestures, allowing both KNN and SVM to achieve extremely high accuracy. We ultimately selected SVM (99.97% accuracy) over KNN because it creates more flexible boundaries to separate the classes. Finally, The successful 10-round live test proved that our system is highly reliable and efficient enough for real-time applications.
 
-**Limitations and Future Work:** 
-* **Dataset Constraints:** The limited sample size of the Stressed dataset restricted a definitive assessment of deep manifold learning. Future work should incorporate larger, more diverse noisy datasets to further stress-test non-linear architectures.
-* **Live Feed Integration:** Transitioning the RPS simulation from static image inputs to a real-time webcam video feed would provide a more rigorous empirical evaluation of the model's inference latency and its robustness against dynamic lighting and motion blur.
+### 6.2 Limitations and Future Work
+
+#### 6.2.1 Dataset Constraints
+The limited sample size of the Stressed dataset restricted a definitive assessment of deep manifold learning. Future work should incorporate larger, more diverse noisy datasets to further stress-test non-linear architectures.
+
+#### 6.2.2 Live Feed Integration
+Transitioning the RPS simulation from static image inputs to a real-time webcam video feed would provide a more rigorous empirical evaluation of the model's inference latency and its robustness against dynamic lighting and motion blur.
+
 ---
 
 ## 7. References
