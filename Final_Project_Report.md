@@ -56,10 +56,12 @@ Therefore, our methodology is not merely a classification task but a comparative
 
 ### 3.2 Preprocessing and Standardization
 To ensure mathematical stability and prevent bias, the preprocessing and standardization steps are excecuted before model processing.
-* **Resizing & Flattening:** All images are uniformly reshaped to 64x64 pixels and flattened into 4096-dimensional vectors for linear processing.
-* **Normalization:** Pixel-level Z-score standardization is applied to ensure scale uniformity across all features.
+* **Resizing & Flattening:** Each 2D image $\mathbf{I}$ is resized to $64 \times 64$ pixels. The resized matrix $\mathbf{I} \in \mathbb{R}^{64 \times 64}$ are then flattened into 4096-dimensional vectors $\mathbf{x} \in \mathbb{R}^d$ for linear processing.
+* **Normalization:** Pixel-level Z-score standardization is applied to ensure scale uniformity across all features:
+  $$\mathbf{x}_{std} = \frac{\mathbf{x} - \mu}{\sigma + \epsilon}$$
+  Where $\mu$ and $\sigma$ are the mean and standard deviation of the image pixels, and $\epsilon = 1e^{-7}$ is a small constant (epsilon) added to prevent division by zero.
 * **Class Balancing:** The training set undergoes automated class augmentation to ensure an equal sample distribution, preventing downstream classifiers from biasing toward majority gestures.
-* **Environmental Mitigation (Dataset 2 Only):** For the Stressed dataset, Gaussian smoothing is applied to reduce high-frequency noise, followed by Contrast Limited Adaptive Histogram Equalization (CLAHE) to mitigate uneven lighting.
+* **Environmental Mitigation (Dataset 2 Only):** For the Stressed dataset, Gaussian smoothing is applied to reduce high-frequency noise: $$G(x, y) = \frac{1}{2\pi\sigma^2} e^{-\frac{x^2+y^2}{2\sigma^2}}$$ This convolution smooths the image, allowing the model to focus on the primary structural contours of the hand. Then followed by Contrast Limited Adaptive Histogram Equalization (CLAHE) to mitigate uneven lighting.
 
 ---
 
@@ -68,9 +70,35 @@ The project is structured into three progressive modules to evaluate and enhance
 
 ### 4.1 Module 1: Foundational Modeling (`run_module_1()`)
 This module establishes a baseline performance ceiling by evaluating foundational feature extractors on the noise-free, Ideal dataset. 
-* We deploy global linear projections (**PCA**), supervised linear projections (**PCA+LDA**), and local gradient descriptors (**HOG+PCA**). 
-* Each model is trained using a K-Nearest Neighbors (K-NN) classifier optimized via 5-Fold Cross-Validation. 
-* *Note: Non-linear manifold learning models are intentionally excluded in this phase to prevent overfitting on clean data.*
+
+- Feature Engineering & Dimensionality Reduction
+  
+1. Principal Component Analysis (**PCA**):
+    We implement Principal Component Analysis (PCA) as a baseline for global feature extraction. we reduce the 4096-dimensional pixel space into a lower-dimensional subspace while retaining 95% of the variance.
+     - Covariance Matrix: $\mathbf{C} = \frac{1}{n-1} \sum_{i=1}^{n} (\mathbf{x}_i - \bar{\mathbf{x}})(\mathbf{x}_i - \bar{\mathbf{x}})^T$.
+     - Eigen-Decomposition: Solving $\mathbf{C}\mathbf{v} = \lambda \mathbf{v}$.
+     - Selection: We retain components satisfying  $\frac{\sum_{i=1}^{k} \lambda_i}{\sum_{j=1}^{d} \lambda_j} \geq 0.95 $.
+        
+2. Supervised Linear Projection (**PCA+LDA**): Building on the comparative study of robotic hand control by (Zhang et al., 2014), this framework integrates PCA and Linear Discriminant Analysis (LDA). LDA maximizes class separability by solving for the weight vector $w$ that maximizes the Fisher criterion:
+
+$$
+J(w) = \frac{w^T S_B w}{w^T S_W w}
+$$
+
+&nbsp;&nbsp;&nbsp;&nbsp;Where $S_B$ represents between-class scatter and $S_W$ represents within-class scatter.
+
+3. Structural Gradient Descriptors (**HOG+PCA**): Drawing on the research of (Lai & Teoh, 2016), HOG captures local shape by calculating the gradient magnitude and orientation $\theta$, then applied PCA to refine the high-dimensional HOG vectors into a manageable feature set:
+  
+$$
+Magnitude = \sqrt{G_x^2 + G_y^2}, \quad \theta = \arctan\left(\frac{G_y}{G_x}\right)
+$$
+  
+&nbsp;&nbsp;&nbsp;&nbsp;These are binned into histograms within $8 \times 8$ cells and normalized across $2 \times 2$ blocks to ensure local contrast invariance.
+
+- Automated Hyperparameter Tuning (Grid Search):
+  * Distance: Euclidean distance $L_2 = \|\mathbf{z}_i - \mathbf{z}_q\|_2$.
+  * Optimal K: Determined via GridSearchCV ($K \in [1, 30]$) with 5-fold cross-validation.
+  * Robustness Floor: We enforce $K_{final} = \max(K_{opt}, 5)$ to ensure a minimum neighborhood consensus, protecting the model from localized pixel noise in the Stressed dataset.
 
 ### 4.2 Module 2: Robustness Evaluation (`run_module_2()`)
 This core phase acts as a "Robustness Tournament" by transitioning models to the Stressed dataset to evaluate resilience against environmental noise.
@@ -87,23 +115,53 @@ We translate our experimental findings into a strategic deployment.
 ## 5. Result and Analysis
 
 ### 5.1 Module 1: Foundational Modeling under Ideal Conditions
-Under ideal conditions, all three feature extractors achieved perfect or near-perfect classification accuracy, confirming that clean, thresholded gesture images are highly separable in a compressed feature space. 
+The primary objective of Module 1 is to establish a performance "ceiling" under controlled conditions, characterized by uniform backgrounds and consistent lighting. By evaluating the Ideal dataset, we validate the integrity of the feature extraction pipeline and the classification logic before introducing environmental complexity.
+#### 5.1.1 Dimensionality Reduction and Variance Analysis (PCA)
+The initial 4096-dimensional pixel space ($64 \times 64$ grayscale) was processed using Principal Component Analysis (PCA) to evaluate data redundancy.
 
-The PCA variance plot below shows that approximately 95% of the total variance is captured within the first 100 principal components, confirming aggressive but lossless dimensionality reduction. 
-<p align="center">
+<div align="center">
   <img src="./results/pca_variance_ideal.png" alt="PCA Variance - Ideal"><br>
-  <em>Figure: PCA Variance - Ideal</em>
-</p>
+  <strong><em><sub>Figure4: PCA Variance - Ideal</sub></em></strong>
+</div>
+<br>
 
-The KNN tuning curve identifies the optimal K (K=5). The confusion matrix confirms clean per-class separation with no systematic misclassifications under ideal conditions.
-<p align="center">
+Variance Retention: As illustrated in `Figure4: PCA Variance - Ideal`, the dataset exhibits significant energy concentration. The first 20 principal components account for approximately 80% of the variance, while reaching the 95% threshold requires roughly 131 components.
+
+#### 5.1.2 Hyperparameter Optimization (K-NN Tuning)
+To ensure a robust classification boundary, we utilized `GridSearchCV` to perform 5-fold cross-validation on the number of neighbors ($K$) for all feature sets.
+  - Tuning Performance across PCA, LDA, and HOG:
+<div align="center">
   <img src="./results/knn_tuning_ideal_pca.png" alt="KNN Tuning - Ideal PCA"><br>
-  <em>Figure: KNN Tuning - Ideal PCA</em>
-</p>
+  <strong><em><sub>Figure5: KNN Tuning - Ideal PCA</sub></em></strong>
+</div>
+<br>
+<div align="center">
+  <img src="./results/knn_tuning_ideal_lda.png" alt="KNN Tuning - Ideal LDA"><br>
+  <strong><em><sub>Figure6: KNN Tuning - Ideal LDA</sub></em></strong>
+</div>
+<br>
+
+According to `Figure5: KNN Tuning - Ideal PCA` and `Figure6: KNN Tuning - Ideal LDA`, the Mean CV Accuracy for pixel-based methods remains remarkably stable at 1.0000 for nearly all tested $K$ values.
+
+<div align="center">
+  <img src="./results/knn_tuning_ideal_hog.png" alt="KNN Tuning - Ideal HOG"><br>
+  <strong><em><sub>Figure7: KNN Tuning - Ideal HOG</sub></em></strong>
+</div>
+<br>
+
+For the gradient-based method,`Figure7: KNN Tuning - Ideal HOG` also demonstrates a high-performance plateau, with the accuracy holding steady at ~0.9998. This indicates that HOG features are just as discriminative as raw pixels in noise-free environments.
+
+- The Robustness Constraint: Across all three feature strategies, because our dataset are too ideal, when $K=1$ , mathematically the model can achieve peak performance, then the threshold with `min_k=5` has been forcibly enabled. This strategic decision ensures that the decision boundaries are supported by a local consensus of neighbors, preventing the model from becoming overly sensitive to minor pixel-level shifts. The selected $K=5$ (marked by the red dashed line in all tuning plots) provides a conservative but reliable baseline.
+    
+
+#### 5.1.3 Performance Benchmark Summary
+
 <p align="center">
   <img src="./results/confusion_matrix_ideal_pca.png" alt="Confusion Matrix - Ideal PCA"><br>
-  <em>Figure: Confusion Matrix - Ideal PCA</em>
+  <strong><em><sub>Figure8: Confusion Matrix - Ideal PCA</sub></em></strong>
 </p>
+
+
 
 ### 5.2 Module 2: Robustness Evaluation under Complex Environments
 
