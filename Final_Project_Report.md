@@ -106,13 +106,13 @@ This module aims to measure how different models (linear methods in Module 1 ver
 - Non-linear Manifold Learning:
 
 1. Isometric Mapping (**ISOMAP**): 
-   ISOMAP is implemented to capture the non-linear geometric structure of hand gestures by preserving geodesic distances.
+   Introduced by (Tenenbaum et al., 2000), ISOMAP is implemented to capture the non-linear geometric structure of hand gestures by preserving geodesic distances.
    - Neighborhood Graph: Constructs an adjacency graph $G$ where each point $\mathbf{x}_i$ is connected to its $k$-nearest neighbors.
    - Geodesic Distance: Approximates the distance along the manifold surface using the shortest path algorithm: $d_G(i, j) = \min(path_{i \to j})$.
    - Embedding: Applies MDS to the resulting geodesic distance matrix to find low-dimensional coordinates $\mathbf{y}_i$.
 
 2. Uniform Manifold Approximation and Projection (**UMAP**): 
-   UMAP is utilized to explore topological connectivity. It assumes the data is uniformly distributed on a locally connected Riemannian manifold.
+   Introduced by (McInnes et al., 2018), UMAP is utilized to explore topological connectivity. It assumes the data is uniformly distributed on a locally connected Riemannian manifold.
    - Fuzzy Simplicial Set: Constructs a high-dimensional fuzzy topological representation of the data.
    - Layout Optimization: Minimizes the cross-entropy between the high-dimensional and low-dimensional representations to preserve both local and global structures:
    
@@ -272,19 +272,23 @@ The deployed model was evaluated across a 10-round Rock-Paper-Scissors game simu
 ---
 
 ## 6. Conclusion
-This project developed a three-module pipeline for robust finger-counting gesture classification, progressively evaluating feature extraction strategies from ideal to stressed conditions and deploying the optimal model into a real-time Rock-Paper-Scissors application.
+This project developed a three-module pipeline for robust finger-counting gesture classification, progressively evaluating feature extraction strategies from ideal to stressed conditions and deploying the optimal model into a real-time Rock-Paper-Scissors application. We summarize our key findings below:
 
-**Key Findings:**
-* **Ideal conditions can be misleading:** In Module 1, all feature extractors performed almost perfectly on clean data, but their performance dropped differently under stressed conditions. This shows that evaluating only on ideal data overestimates how well models perform in real-world settings.
-* **Supervised methods are more robust under stress:** LDA performed better than unsupervised methods because it focuses on separating classes. It had the lowest drop in performance (11.76%), while methods like PCA, ISOMAP, and especially UMAP degraded much more (UMAP dropped over 40%).
-* **Non-linear methods didn’t help as expected:** ISOMAP performed about the same as PCA, and UMAP performed the worst under stress. This suggests that for smaller and noisier datasets, more complex non-linear methods may overfit to noise instead of learning meaningful gesture patterns.
-* **LDA is the best choice for deployment:** LDA reduced the data to just 5 dimensions while still keeping 88.24% accuracy under stressed conditions. It’s also efficient, making it a good fit for real-time applications.
-* **The RPS simulation shows the model works in practice:** The final LDA-based pipeline correctly classified gestures in the RPS game. Any wins or losses were due to the randomness of the opponent, not model errors, which shows the system is reliable.
+**Key Findings & Research Questions Addressed:**
+
+* **1. Improvement of PCA+LDA over Standard PCA (Q1):** The cascaded PCA+LDA architecture drastically improved class separability in the feature space. While standard PCA suffered a 23.53% robustness decay under environmental stress, LDA successfully filtered out background noise by maximizing inter-class variance. This capped the decay at just 11.76% while simultaneously compressing the data into an ultra-efficient 5-dimensional space.
+
+* **2. Hybrid Structural Descriptors vs. Pixel Projections (Q2):** The hybrid HOG+PCA approach demonstrated exceptional resilience, matching LDA's top accuracy (88.24%) and significantly outperforming standard PCA. By isolating local geometric shapes from global lighting variances, HOG proved highly robust. However, as an efficiency tie-breaker, the pixel-level PCA+LDA projection was ultimately preferred for deployment because it achieved the exact same accuracy using only 5 dimensions, compared to HOG's 60 dimensions.
+
+* **3. Quantifying "Robustness Decay" (Q3):** Transitioning from monochrome to cluttered backgrounds induced significant performance drops across all models, proving that near-perfect accuracy under ideal conditions is highly misleading. We successfully quantified this "Robustness Decay," which ranged from an optimized 11.76% (LDA and HOG) to a severe 41.18% (UMAP), highlighting the absolute necessity of environmental stress-testing for computer vision models.
+
+* **4. Vulnerability of Manifold Learning in Noise (Q4):** Contrary to our initial hypothesis, manifold learning methods did *not* handle complex backgrounds better than linear PCA. ISOMAP merely matched the standard PCA baseline, while UMAP suffered the highest decay (>40%). This confirms that in low-sample, noisy environments, non-linear algorithms are highly susceptible to overfitting background artifacts rather than capturing the true gesture topology.
+
+* **5. Strategic Reliability on Game Subsets (Q5):** In module3, the LDA method successfully separated the gestures, allowing both KNN and SVM to achieve extremely high accuracy. We ultimately selected SVM (99.97% accuracy) over KNN because it creates more flexible boundaries to separate the classes. Finally, The successful 10-round live test proved that our system is highly reliable and efficient enough for real-time applications.
 
 **Limitations and Future Work:** 
-* The stressed dataset is small, so results may not be fully reliable. Future work should include a larger dataset to better validate performance.
-* Testing the model in a real-time webcam setting would provide a better understanding of LDA’s speed and practicality compared to methods like HOG.
-
+* **Dataset Constraints:** The limited sample size of the Stressed dataset restricted a definitive assessment of deep manifold learning. Future work should incorporate larger, more diverse noisy datasets to further stress-test non-linear architectures.
+* **Live Feed Integration:** Transitioning the RPS simulation from static image inputs to a real-time webcam video feed would provide a more rigorous empirical evaluation of the model's inference latency and its robustness against dynamic lighting and motion blur.
 ---
 
 ## 7. References
@@ -294,3 +298,5 @@ This project developed a three-module pipeline for robust finger-counting gestur
 4. Lai, C. Q., & Teoh, S. S. (2016). An Efficient Method of HOG Feature Extraction Using Selective Histogram Bin and PCA Feature Reduction. Advances in Electrical and Computer Engineering, 16(4), 101-108.
 5. Ahmed, F., Khan, W. A., Iqbal, M., Abazeed, A. R. A., Alrababah, H., & Khan, M. F. (2023). Rock-paper-scissors image classification using transfer learning. 2023 International Conference on Business Analytics for Technology and Security (ICBATS), 1-6.
 6. Reza, A. M. (2004). Realization of the Contrast Limited Adaptive Histogram Equalization (CLAHE) for Real-Time Image Enhancement. Journal of VLSI Signal Processing Systems, 38, 35-44.
+7. McInnes, L., Healy, J., & Melville, J. (2018). Umap: Uniform manifold approximation and projection for dimension reduction. arXiv preprint arXiv:1802.03426.
+8. Tenenbaum, J. B., De Silva, V., & Langford, J. C. (2000). A global geometric framework for nonlinear dimensionality reduction. Science, 290(5500), 2319-2323.
