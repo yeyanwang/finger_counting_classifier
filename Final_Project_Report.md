@@ -66,9 +66,9 @@ Each 2D image $\mathbf{I}$ is resized to $64 \times 64$ pixels. The resized matr
 
 #### 3.2.2 Normalization
 Pixel-level Z-score standardization is applied to ensure scale uniformity across all features:
-$$
-\mathbf{x}_{std} = \frac{\mathbf{x} - \mu}{\sigma + \epsilon}
-$$
+
+$$\mathbf{x}_{std} = \frac{\mathbf{x} - \mu}{\sigma + \epsilon}$$
+
 Where $\mu$ and $\sigma$ are the mean and standard deviation of the image pixels, and $\epsilon = 1e^{-7}$ is a small constant (epsilon) added to prevent division by zero.
 
 #### 3.2.3 Class Balancing
@@ -76,9 +76,9 @@ The training set undergoes automated class augmentation to ensure an equal sampl
 
 #### 3.2.4 Environmental Mitigation (Dataset 2 Only)
 For the Stressed dataset, Gaussian smoothing is applied to reduce high-frequency noise: 
-$$
-G(x, y) = \frac{1}{2\pi\sigma^2} e^{-\frac{x^2+y^2}{2\sigma^2}}
-$$
+
+$$G(x, y) = \frac{1}{2\pi\sigma^2} e^{-\frac{x^2+y^2}{2\sigma^2}}$$
+
 This convolution smooths the image, allowing the model to focus on the primary structural contours of the hand. Then followed by Contrast Limited Adaptive Histogram Equalization (CLAHE) to mitigate uneven lighting.
 
 ---
