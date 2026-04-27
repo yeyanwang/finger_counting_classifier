@@ -93,31 +93,36 @@ This module establishes a baseline performance ceiling by evaluating foundationa
   
 ##### 4.1.1.1 Principal Component Analysis (PCA)
 We implement Principal Component Analysis (PCA) as a baseline for global feature extraction. we reduce the 4096-dimensional pixel space into a lower-dimensional subspace while retaining 95% of the variance.
-- Covariance Matrix: $\mathbf{C} = \frac{1}{n-1} \sum_{i=1}^{n} (\mathbf{x}_i - \bar{\mathbf{x}})(\mathbf{x}_i - \bar{\mathbf{x}})^T$.
-- Eigen-Decomposition: Solving $\mathbf{C}\mathbf{v} = \lambda \mathbf{v}$.
-- Selection: We retain components satisfying  $\frac{\sum_{i=1}^{k} \lambda_i}{\sum_{j=1}^{d} \lambda_j} \geq 0.95 $.
+- Covariance Matrix: We compute $\mathbf{C} = \frac{1}{n-1} \sum_{i=1}^{n} (\mathbf{x}_i - \bar{\mathbf{x}})(\mathbf{x}_i - \bar{\mathbf{x}})^T$ to identify pairwise pixel correlations.
+- Eigen-Decomposition: By solving $\mathbf{C}\mathbf{v} = \lambda \mathbf{v}$, the model extracts "Eigen-fingers"—the principal axes representing the most significant structural variance.
+- Selection: we set n_components=0.95. Mathematically, this selects the smallest $k$ such that the cumulative energy ratio satisfies:
+  
+$$
+\frac{\sum_{i=1}^{k} \lambda_i}{\sum_{j=1}^{d} \lambda_j} \geq 0.95 
+$$
       
 ##### 4.1.1.2 Supervised Linear Projection (PCA+LDA)
-Building on the comparative study of robotic hand control by (Zhang et al., 2014), this framework integrates PCA and Linear Discriminant Analysis (LDA). LDA maximizes class separability by solving for the weight vector $w$ that maximizes the Fisher criterion:
-
+Building on the comparative study of robotic hand control by Zhang et al. (2014), this framework integrates PCA and Linear Discriminant Analysis (LDA). Following the standard practice in high-dimensional pattern recognition proposed by Belhumeur et al. (1997), we utilize PCA results on step 4.1.1.1 as the input for LDA to circumvent the Singularity Problem.
+- Fisher Criterion: LDA identifies the weight vector $w$ that maximizes class separability by solving for:
+  
 $$
 J(w) = \frac{w^T S_B w}{w^T S_W w}
 $$
 
-&nbsp;&nbsp;&nbsp;&nbsp;Where $S_B$ represents between-class scatter and $S_W$ represents within-class scatter.
+- Stabilization: With a feature dimensionality of $d=4096$ in our raw data, the individual class training size ($\approx 1400$ samples per class) is insufficient to produce a well-conditioned within-class scatter matrix $\mathbf{S}_W$. PCA stabilizes this by reducing the dimension until $S_W$ is non-singular, allowing for a robust calculation of the Fisher criterion.
 
 ##### 4.1.1.3 Structural Gradient Descriptors (HOG+PCA)
 Drawing on the research of (Lai & Teoh, 2016), HOG captures local shape by calculating the gradient magnitude and orientation $\theta$, then applied PCA to refine the high-dimensional HOG vectors into a manageable feature set:
   
 $$
-Magnitude = \sqrt{G_x^2 + G_y^2}, \quad \theta = \arctan\left(\frac{G_y}{G_x}\right)
+\text{Magnitude} = \sqrt{G_x^2 + G_y^2}, \quad \theta = \arctan\left(\frac{G_y}{G_x}\right)
 $$
   
-&nbsp;&nbsp;&nbsp;&nbsp;These are binned into histograms within $8 \times 8$ cells and normalized across $2 \times 2$ blocks to ensure local contrast invariance.
+- Normalization: These are binned into histograms and normalized across $2 \times 2$ blocks to ensure local contrast invariance. A secondary PCA step is then applied to the HOG vectors to maintain a manageable feature dimension of optimal $k$.
 
 #### 4.1.2 Automated Hyperparameter Tuning (Grid Search)
-* **Distance:** Euclidean distance $L_2 = \|\mathbf{z}_i - \mathbf{z}_q\|_2$.
-* **Optimal K:** Determined via GridSearchCV ($K \in [1, 30]$) with 5-fold cross-validation.
+* **Distance:** Similarity is defined by the Euclidean distance $L_2 = \|\mathbf{z}_i - \mathbf{z}_q\|_2$, measuring proximity in the reduced feature space.
+* **Optimal K:** Determined via GridSearchCV ($K \in [1, 30]$) with 5-fold cross-validation to prevent bias from any single train-test split.
 * **Robustness Floor:** We enforce $K_{final} = \max(K_{opt}, 5)$ to ensure a minimum neighborhood consensus, protecting the model from localized pixel noise in the Stressed dataset.
 
 ### 4.2 Module 2: Robustness Evaluation (`run_module_2()`)
@@ -174,7 +179,6 @@ The winning classifier is deployed into a 10-round RPS simulation. Game outcomes
 The primary objective of Module 1 is to establish a performance "ceiling" under controlled conditions, characterized by uniform backgrounds and consistent lighting. By evaluating the Ideal dataset, we validate the integrity of the feature extraction pipeline and the classification logic before introducing environmental complexity.
 
 #### 5.1.1 Dimensionality Reduction and Variance Analysis (PCA)
-The initial 4096-dimensional pixel space ($64 \times 64$ grayscale) was processed using Principal Component Analysis (PCA) to evaluate data redundancy.
 
 <div align="center">
   <img src="./results/pca_variance_ideal.png" alt="PCA Variance - Ideal"><br>
@@ -182,7 +186,7 @@ The initial 4096-dimensional pixel space ($64 \times 64$ grayscale) was processe
 </div>
 <br>
 
-Variance Retention: As illustrated in `Figure4: PCA Variance - Ideal`, the dataset exhibits significant energy concentration. The first 20 principal components account for approximately 80% of the variance, while reaching the 95% threshold requires roughly 131 components.
+- Analysis: The initial 4096-dimensional pixel space ($64 \times 64$ grayscale) was processed using Principal Component Analysis (PCA) to evaluate data redundancy. As illustrated in `Figure4: PCA Variance - Ideal`, the dataset exhibits significant energy concentration. The first 20 principal components account for approximately 80% of the variance, while reaching the 95% threshold requires roughly 131 components.
 
 #### 5.1.2 Hyperparameter Optimization (K-NN Tuning)
 To ensure a robust classification boundary, we utilized `GridSearchCV` to perform 5-fold cross-validation on the number of neighbors ($K$) for all feature sets.
@@ -198,7 +202,7 @@ To ensure a robust classification boundary, we utilized `GridSearchCV` to perfor
 </div>
 <br>
 
-According to `Figure5: KNN Tuning - Ideal PCA` and `Figure6: KNN Tuning - Ideal LDA`, the Mean CV Accuracy for pixel-based methods remains remarkably stable at 1.0000 for nearly all tested $K$ values.
+- Analysis: According to `Figure5: KNN Tuning - Ideal PCA` and `Figure6: KNN Tuning - Ideal LDA`, the Mean CV Accuracy for pixel-based methods remains remarkably stable at roughly 1.0000 for nearly all tested $K$ values. This indicates that in ideal conditions, the hand gesture classes are perfectly linearly separable in the PCA-LDA subspace.
 
 <div align="center">
   <img src="./results/knn_tuning_ideal_hog.png" alt="KNN Tuning - Ideal HOG"><br>
@@ -206,7 +210,7 @@ According to `Figure5: KNN Tuning - Ideal PCA` and `Figure6: KNN Tuning - Ideal 
 </div>
 <br>
 
-For the gradient-based method,`Figure7: KNN Tuning - Ideal HOG` also demonstrates a high-performance plateau, with the accuracy holding steady at ~0.9998. This indicates that HOG features are just as discriminative as raw pixels in noise-free environments.
+- Analysis: For the gradient-based method,`Figure7: KNN Tuning - Ideal HOG` also demonstrates a high-performance plateau, with the accuracy holding steady at ~0.9998. This indicates that HOG features are just as discriminative as raw pixels in noise-free environments.
 
 - The Robustness Constraint: Across all three feature strategies, because our dataset are too ideal, when $K=1$ , mathematically the model can achieve peak performance, then the threshold with `min_k=5` has been forcibly enabled. This strategic decision ensures that the decision boundaries are supported by a local consensus of neighbors, preventing the model from becoming overly sensitive to minor pixel-level shifts. The selected $K=5$ (marked by the red dashed line in all tuning plots) provides a conservative but reliable baseline.
     
@@ -218,6 +222,7 @@ For the gradient-based method,`Figure7: KNN Tuning - Ideal HOG` also demonstrate
   <strong><em><sub>Figure8: Confusion Matrix - Ideal PCA</sub></em></strong>
 </p>
 
+- Analysis: `Figure8: Confusion Matrix - Ideal PCA` shows that all test samples are positioned strictly along the main diagonal (top-left to bottom-right). Specifically, classes 0, 1, 2, 4, and 5 each have 300 correctly identified samples, while class 3 has 301. This result confirms that under controlled environmental conditions (monochrome background and uniform lighting), the global features extracted via PCA are linearly separable and sufficient for flawless classification. And this baseline will be contrasted with the Stressed PCA results in the next section to demonstrate the vulnerability of raw pixel variance to environmental noise.
 
 
 ### 5.2 Module 2: Robustness Evaluation under Complex Environments
@@ -245,7 +250,7 @@ As shown in `Figure 9`, retaining 95% of the variance now requires only 51 princ
 
 | Feature Extractor | Stressed Accuracy | Ideal Accuracy | Robustness Decay |
 | :--- | :---: | :---: | :---: |
-| **LDA** | **0.8824** | **1.0000** | **11.76%** |
+| **PCA+LDA** | **0.8824** | **1.0000** | **11.76%** |
 | HOG + PCA | 0.8824 | 1.0000 | 11.76% |
 | PCA | 0.7647 | 1.0000 | 23.53% |
 | ISOMAP | 0.7647 | 1.0000 | 23.53% |
@@ -262,7 +267,7 @@ Surprisingly, non-linear manifold learning (**ISOMAP**) performed identically to
 The **HOG + PCA** pipeline demonstrated high performance (0.8824). Because HOG relies on local gradient orientations rather than raw pixel intensities, it effectively isolates gesture geometry and ignores pixel-level background fluctuations.
 
 ##### 5.2.4.3 Advantages of Supervised Learning
-**LDA** also tied for the highest accuracy (0.8824). By actively maximizing inter-class separability via class labels during the training phase, LDA successfully filtered out environmental stress that unsupervised methods completely failed to ignore.
+**PCA+LDA** also tied for the highest accuracy (0.8824). By actively maximizing inter-class separability via class labels during the training phase, LDA successfully filtered out environmental stress that unsupervised methods completely failed to ignore.
 
 <div align="center">
   <img src="./results/robustness_decay_pca_+_knn.png" alt="Robustness Decay Chart"><br>
@@ -271,9 +276,9 @@ The **HOG + PCA** pipeline demonstrated high performance (0.8824). Because HOG r
 <br>
 
 #### 5.2.5 Conclusion for Model Selection
-Although both LDA and HOG+PCA achieved identical accuracy (0.8824) and robustness decay (11.76%), **LDA** was selected as the optimal feature extractor for the interactive application in Module 3 due to its advantages as followed:
+Although both PCA+LDA and HOG+PCA achieved identical accuracy (0.8824) and robustness decay (11.76%), **PCA+LDA** was selected as the optimal feature extractor for the interactive application in Module 3 due to its advantages as followed:
 1. **Dimensionality:** LDA successfully compressed the data into just **5 dimensions** (number of classes - 1), whereas the HOG+PCA pipeline required **60 dimensions** to achieve the exact same accuracy. 
-2. **Inference Latency:** For a real-time Rock-Paper-Scissors game, LDA requires only computationally lightweight matrix multiplications during inference. In contrast, HOG requires computationally expensive, sliding-window gradient calculations across the entire image. 
+2. **Inference Latency:** For a real-time Rock-Paper-Scissors game, PCA+LDA requires only computationally lightweight matrix multiplications during inference. In contrast, HOG requires computationally expensive, sliding-window gradient calculations across the entire image. 
 
 <div align="center">
   <img src="./results/confusion_matrix_stressed_pca.png" alt="Confusion Matrix - Stressed PCA"><br>
@@ -284,7 +289,7 @@ Although both LDA and HOG+PCA achieved identical accuracy (0.8824) and robustnes
 ### 5.3 Module 3: Rock-Paper-Scissors (Strategic Application)
 
 #### 5.3.1 Objective
-With LDA selected as the feature extraction method, this module compares KNN and SVM to determine which works better for the three-class Rock-Paper-Scissors (RPS) subset. The best model is then used in a live 10-round simulation.
+With PCA+LDA selected as the feature extraction method, this module compares KNN and SVM to determine which works better for the three-class Rock-Paper-Scissors (RPS) subset. The best model is then used in a live 10-round simulation.
 
 #### 5.3.2 Classifier Comparison
 Both KNN and SVM achieved very high accuracy on the RPS subset, with SVM slightly outperforming KNN (99.97% vs. 99.94%), as shown in the classifier comparison bar chart below. While the difference is small, SVM was chosen because it can create more flexible decision boundaries in the reduced 5-dimensional LDA space, where the classes are tightly clustered. Based on this, SVM was selected as the final model for deployment.
@@ -342,8 +347,9 @@ Transitioning the RPS simulation from static image inputs to a real-time webcam 
 1. Roy, K., & Akif, M. A. H. (2022, February). Real time hand gesture based user friendly human computer interaction system. In 2022 International Conference on Innovations in Science, Engineering and Technology (ICISET) (pp. 260-265). IEEE.
 2. Oudah, M., Al-Naji, A., & Chahl, J. (2020). Hand gesture recognition based on computer vision: a review of techniques. journal of Imaging, 6(8), 73.
 3. Zhang, D., Zhao, X., Han, J., & Zhao, Y. (2014). A comparative study on PCA and LDA based EMG pattern recognition for anthropomorphic robotic hand. 2014 IEEE International Conference on Robotics and Automation (ICRA), 4850-4855.
-4. Lai, C. Q., & Teoh, S. S. (2016). An Efficient Method of HOG Feature Extraction Using Selective Histogram Bin and PCA Feature Reduction. Advances in Electrical and Computer Engineering, 16(4), 101-108.
-5. Ahmed, F., Khan, W. A., Iqbal, M., Abazeed, A. R. A., Alrababah, H., & Khan, M. F. (2023). Rock-paper-scissors image classification using transfer learning. 2023 International Conference on Business Analytics for Technology and Security (ICBATS), 1-6.
-6. Reza, A. M. (2004). Realization of the Contrast Limited Adaptive Histogram Equalization (CLAHE) for Real-Time Image Enhancement. Journal of VLSI Signal Processing Systems, 38, 35-44.
-7. McInnes, L., Healy, J., & Melville, J. (2018). Umap: Uniform manifold approximation and projection for dimension reduction. arXiv preprint arXiv:1802.03426.
-8. Tenenbaum, J. B., De Silva, V., & Langford, J. C. (2000). A global geometric framework for nonlinear dimensionality reduction. Science, 290(5500), 2319-2323.
+4. Belhumeur, P. N., Hespanha, J. P., & Kriegman, D. J. (1997). Eigenfaces vs. Fisherfaces: Recognition using class specific linear projection. IEEE Transactions on Pattern Analysis and Machine Intelligence, 19(7), 711–720. https://doi.org/10.1109/34.598228
+5. Lai, C. Q., & Teoh, S. S. (2016). An Efficient Method of HOG Feature Extraction Using Selective Histogram Bin and PCA Feature Reduction. Advances in Electrical and Computer Engineering, 16(4), 101-108.
+6. Ahmed, F., Khan, W. A., Iqbal, M., Abazeed, A. R. A., Alrababah, H., & Khan, M. F. (2023). Rock-paper-scissors image classification using transfer learning. 2023 International Conference on Business Analytics for Technology and Security (ICBATS), 1-6.
+7. Reza, A. M. (2004). Realization of the Contrast Limited Adaptive Histogram Equalization (CLAHE) for Real-Time Image Enhancement. Journal of VLSI Signal Processing Systems, 38, 35-44.
+8. McInnes, L., Healy, J., & Melville, J. (2018). Umap: Uniform manifold approximation and projection for dimension reduction. arXiv preprint arXiv:1802.03426.
+9. Tenenbaum, J. B., De Silva, V., & Langford, J. C. (2000). A global geometric framework for nonlinear dimensionality reduction. Science, 290(5500), 2319-2323.
