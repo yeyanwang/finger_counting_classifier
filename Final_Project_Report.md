@@ -6,6 +6,7 @@
 ---
 
 ## 1. Problem Statement
+
 In computer vision, image classifiers often achieve high accuracy under controlled conditions- such as monochrome backgrounds and uniform lighting. However, their performance degrades in real-world scenarios characterized by cluttered backgrounds, varying illumination, also when the finger gestures have some obstructions or taking from complex angles. 
 
 This project aims to bridge this gap by building a robust finger counting model. By progressing from a baseline model, this system will be capable of accurately recognizing finger gestures from 0 to 5 while accounting for:
@@ -14,13 +15,16 @@ This project aims to bridge this gap by building a robust finger counting model.
 - **Individual Diversity:** Variations in hand shapes and sizes across different users.
 - **Interactive Application:** Integration of the finger-count model into real-time environments, such as Rock-Paper-Scissors game, to evaluate robustness, usability, and reliability under dynamic, real-world conditions.
 
-While contemporay "black-box" frameworks provide high end-to-end accuracy and robust computational results, for instances, the MediaPipe framework achieves a mean precision of 95.7% in palm identification by utilizing a coordinated machine learning pipeline to infer 3D landmarks (Roy et al., 2022) Similarly, Convolutional Neural Networks (CNN) and models like YOLOv3 are used to learn features and classify gestures directly from video frames, achieving accuracies as high as 97.68%. Futhermore, by using Skeletal and 3D Modeling can improve the detection of complex features, such as track the skeletal joints of the hand (such as 20 or 25 joints) as well as their trajectories, curvatures and angles(Oudah et al., 2020) However, their logic for a specific prediction is hidden within millions of parameters, they often obscure the relationship between raw pixel variance and environmental stressor, we want to quantify how specific real-world scenarios would degrade the underlying feature space in our project.
+While contemporay "black-box" frameworks provide high end-to-end accuracy and robust computational results, for instances, the MediaPipe framework achieves a mean precision of 95.7% in palm identification by utilizing a coordinated machine learning pipeline to infer 3D landmarks (Roy et al., 2022) Similarly, Convolutional Neural Networks (CNN) and models like YOLOv3 are used to learn features and classify gestures directly from video frames, achieving accuracies as high as 97.68%. 
+
+Futhermore, by using Skeletal and 3D Modeling can improve the detection of complex features, such as track the skeletal joints of the hand (such as 20 or 25 joints) as well as their trajectories, curvatures and angles(Oudah et al., 2020) However, their logic for a specific prediction is hidden within millions of parameters, they often obscure the relationship between raw pixel variance and environmental stressor, we want to quantify how specific real-world scenarios would degrade the underlying feature space in our project.
 
 Therefore, our methodology is not merely a classification task but a comparative study on feature robustness, aiming to quantify the transition from raw intensity data to structural descriptors. We deliberately employs a suite of interpretable algorithms: PCA, LDA, HOG, and UMAP, to deconstruct the mechanics of hand gesture recognition.
 
 ---
 
 ## 2. Research Questions
+
 1. To what extent does the cascaded PCA+LDA architecture improve class separability in the feature space compared to standard PCA?
 2. How does a hybrid approach that integrates local gradient-based structural descriptors with global dimensionality reduction (HOG + PCA) compare to traditional pixel-level projections (PCA, PCA+LDA) in terms of classification accuracy and computational robustness for multi-pose finger gestures?
 3. What is the measurable "Robustness Decay" when moving from monochrome to cluttered backgrounds?
@@ -86,6 +90,7 @@ This convolution smooths the image, allowing the model to focus on the primary s
 ---
 
 ## 4. Methodology
+
 The project is structured into three progressive modules to evaluate and enhance model performance. 
 
 ### 4.1 Module 1: Foundational Modeling (`run_module_1()`)
@@ -316,6 +321,7 @@ The deployed model was evaluated across a 10-round Rock-Paper-Scissors game simu
 ---
 
 ## 6. Conclusion
+
 This project developed a three-module pipeline for robust finger-counting gesture classification, progressively evaluating feature extraction strategies from ideal to stressed conditions and deploying the optimal model into a real-time Rock-Paper-Scissors application. We summarize our key findings below:
 
 ### 6.1 Key Findings & Research Questions Addressed
@@ -346,6 +352,7 @@ Transitioning the RPS simulation from static image inputs to a real-time webcam 
 ---
 
 ## 7. References
+
 1. Roy, K., & Akif, M. A. H. (2022, February). Real time hand gesture based user friendly human computer interaction system. In 2022 International Conference on Innovations in Science, Engineering and Technology (ICISET) (pp. 260-265). IEEE.
 2. Oudah, M., Al-Naji, A., & Chahl, J. (2020). Hand gesture recognition based on computer vision: a review of techniques. journal of Imaging, 6(8), 73.
 3. Zhang, D., Zhao, X., Han, J., & Zhao, Y. (2014). A comparative study on PCA and LDA based EMG pattern recognition for anthropomorphic robotic hand. 2014 IEEE International Conference on Robotics and Automation (ICRA), 4850-4855.
