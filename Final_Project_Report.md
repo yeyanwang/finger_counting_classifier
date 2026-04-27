@@ -106,7 +106,7 @@ Building on the comparative study of robotic hand control by Zhang et al. (2014)
 - Fisher Criterion: LDA identifies the weight vector $w$ that maximizes class separability by solving for:
   
 $$
-J(w) = \frac{w^T S_B w}{w^T S_W w}
+J(w) = \frac{w^\top S_B w}{w^\top S_W w}
 $$
 
 - Stabilization: With a feature dimensionality of $d=4096$ in our raw data, the individual class training size ($\approx 1400$ samples per class) is insufficient to produce a well-conditioned within-class scatter matrix $\mathbf{S}_W$. PCA stabilizes this by reducing the dimension until $S_W$ is non-singular, allowing for a robust calculation of the Fisher criterion.
